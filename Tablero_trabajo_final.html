@@ -70,38 +70,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="Tablero_trabajo_final_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="Tablero_trabajo_final_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="Tablero_trabajo_final_files/libs/bootstrap/bootstrap-9e3ffae467580fdb927a41352e75a2e0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
-<link href="Tablero_trabajo_final_files/libs/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
-
-<script src="Tablero_trabajo_final_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
-
-<link href="Tablero_trabajo_final_files/libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
-
-<script src="Tablero_trabajo_final_files/libs/datatables-binding-0.34.0/datatables.js"></script>
-
-<script src="Tablero_trabajo_final_files/libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
-
-<link href="Tablero_trabajo_final_files/libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
-
-<link href="Tablero_trabajo_final_files/libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
-
-<script src="Tablero_trabajo_final_files/libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
-
-<script src="Tablero_trabajo_final_files/libs/jszip-1.13.6/jszip.min.js"></script>
-
-<link href="Tablero_trabajo_final_files/libs/dt-ext-buttons-1.13.6/css/buttons.dataTables.min.css" rel="stylesheet">
-
-<script src="Tablero_trabajo_final_files/libs/dt-ext-buttons-1.13.6/js/dataTables.buttons.min.js"></script>
-
-<script src="Tablero_trabajo_final_files/libs/dt-ext-buttons-1.13.6/js/buttons.html5.min.js"></script>
-
-<script src="Tablero_trabajo_final_files/libs/dt-ext-buttons-1.13.6/js/buttons.colVis.min.js"></script>
-
-<script src="Tablero_trabajo_final_files/libs/dt-ext-buttons-1.13.6/js/buttons.print.min.js"></script>
-
-<link href="Tablero_trabajo_final_files/libs/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
-
-<script src="Tablero_trabajo_final_files/libs/crosstalk-1.2.2/js/crosstalk.min.js"></script>
-
 
 
 </head>
@@ -134,7 +102,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="quarto" class="level2">
 <h2 class="anchored" data-anchor-id="quarto">Quarto</h2>
 <p>Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <a href="https://quarto.org" class="uri">https://quarto.org</a>.</p>
-<p>quarto publish gh-pages Tablero_trabajo_final.qmd G</p>
+<!-- quarto publish gh-pages Tablero_trabajo_final.qmd -->
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
@@ -159,48 +127,75 @@ The following objects are masked from 'package:stats':
 
     chisq.test, fisher.test</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DT)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DT)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Adjuntando el paquete: 'scales'
+
+The following object is masked from 'package:purrr':
+
+    discard
+
+The following object is masked from 'package:readr':
+
+    col_factor</code></pre>
+</div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Limpieza del entorno de trabajo</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Carga de datos desde un enlace de Google Sheets</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> <span class="fu">read.xlsx</span>(<span class="st">"C://Users//Brian.Ruiz//OneDrive - Universidad Tecnológica de Pereira//1. UTP//2. Introducción a la Ciencia de Datos//2026-03-Trabajo Fina//DATA//Base_tecnologia.xlsx"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Limpieza de nombres de columnas</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> datos <span class="sc">%&gt;%</span> <span class="fu">clean_names</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Limpieza del entorno de trabajo</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Carga de datos desde un enlace de Google Sheets</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#datos &lt;- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vTs-CC_vSsNazKCuLlF8cQZpbPpI1-AYgAyFKB7Z6CyRh_BXWYclZ0ykOy37I7KQg/pub?output=xlsx&amp;authuser=1")</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> <span class="fu">read.xlsx</span>(<span class="st">"https://docs.google.com/spreadsheets/d/e/2PACX-1vRLYTnqc_ARDjofjUvjZ4X8F1K2aj9cAvOiKE0JTwwcKWr5sSQUqqeP-jcvq6FJkg/pub?output=xlsx"</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Limpieza de nombres de columnas</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> datos <span class="sc">%&gt;%</span> <span class="fu">clean_names</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>datos <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(pais) <span class="sc">%&gt;%</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">ventas =</span> <span class="fu">sum</span>(ventas)) <span class="sc">%&gt;%</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">"País"</span> <span class="ot">=</span> pais,<span class="at">Ventas =</span> ventas) <span class="sc">%&gt;%</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">datatable</span>(</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">extensions =</span> <span class="st">'Buttons'</span>, <span class="co"># Activa la extensión de botones</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">options =</span> <span class="fu">list</span>(</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">dom =</span> <span class="st">'Bfrtip'</span>,       <span class="co"># Define la posición de los elementos (B = Buttons)</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">buttons =</span> <span class="fu">list</span>(</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">list</span>(</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>          <span class="at">extend =</span> <span class="st">'excel'</span>,</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>          <span class="at">text =</span> <span class="st">'Descargar Excel'</span>,</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">'Reporte de Ventas por País'</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">language =</span> <span class="fu">list</span>(<span class="at">url =</span> <span class="st">'//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json'</span>) <span class="co"># Opcional: Idioma español</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 3. Formateo de moneda ($) y miles (.)</span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">formatCurrency</span>(</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="st">'Ventas'</span>,</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">currency =</span> <span class="st">'$'</span>,</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">interval =</span> <span class="dv">3</span>,</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">mark =</span> <span class="st">'.'</span>,</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">digits =</span> <span class="dv">0</span></span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creación de gráfico de barras por país</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>      datos <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(pais) <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">summarise</span>(<span class="at">ventas =</span> <span class="fu">sum</span>(ventas)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">porcentaje =</span> <span class="fu">percent</span>(ventas<span class="sc">/</span><span class="fu">sum</span>(ventas),<span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Identificamos los ejes de la variable, no importa si vas a hacer</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># un gráfico de barras o de columnas, porque al final lo puedes girar.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> pais, <span class="at">y =</span> ventas, <span class="at">fill =</span> pais,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                   <span class="at">label =</span> <span class="fu">paste</span>(porcentaje,<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>,ventas,<span class="st">" "</span>)))<span class="sc">+</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_col</span>()<span class="sc">+</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Estos ajustes de vjust y hjust funcionan muy bien, sin embargo, los puedes ajustar.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_text</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>, <span class="at">hjust =</span> <span class="sc">-</span><span class="fl">0.1</span>, <span class="at">size =</span> <span class="dv">3</span>,<span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="dv">1</span>))<span class="sc">+</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="co"># pues con ella se hace que el eje sea un 10% más grande que el valor máximo.</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="do">## ☢️🚧 scale_y_continuous(limits = c(0, max(datos$n) * 1.1)) +</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Nombre_Eje_X"</span>, <span class="at">y =</span> <span class="st">"Nombre_Eje_X"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">title =</span> <span class="fu">str_wrap</span>(<span class="st">"Cantidad y porcentaje de CONTINUACION DEL TITULO "</span>,<span class="at">width =</span> <span class="dv">30</span>),</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption=</span><span class="st">"Texto informativo en la parte inferior derecha."</span>)<span class="sc">+</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">size=</span><span class="dv">15</span>, <span class="at">face=</span><span class="st">'bold'</span>, <span class="at">color=</span><span class="st">"#525252"</span>, <span class="at">hjust=</span><span class="fl">0.5</span>))<span class="sc">+</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Con esto se evita el cuadro de la leyenda.</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>)<span class="sc">+</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Tamaño del texto de los ejes.</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">8</span>))<span class="sc">+</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>))<span class="sc">+</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Hace que se ajuste el largo de los textos del eje X,</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="co"># para que no se superpongan.</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_x_discrete</span>(<span class="at">labels =</span> <span class="cf">function</span>(x) <span class="fu">str_wrap</span>(x, <span class="at">width =</span> <span class="dv">20</span>))<span class="sc">+</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Una paleta de colores recomendad, pero puedes cambiarla.</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#2171b5"</span>,</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>                                     <span class="st">"#4292c6"</span>,<span class="st">"#74a9cf"</span>,</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>                                     <span class="st">"#41b6c4"</span>,<span class="st">"#7fcdbb"</span>,<span class="st">"#238b45"</span>,<span class="co">#"#41ab5d",</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>                                     <span class="st">"#78c679"</span>,<span class="st">"#c7e9b4"</span>,<span class="st">"#edf8b1"</span>,<span class="st">"#fee391"</span>,<span class="st">"#fec44f"</span>,</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>                                     <span class="st">"#fe9929"</span>,<span class="st">"#ec7014"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div class="datatables html-widget html-fill-item" id="htmlwidget-b847b9522309bcb45333" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-b847b9522309bcb45333">{"x":{"filter":"none","vertical":false,"extensions":["Buttons"],"data":[["1","2","3","4","5"],["Chile","Colombia","Ecuador","México","Paraguay"],[17256310,26283286,21973570,18826091,26077223]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>País<\/th>\n      <th>Ventas<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"Bfrtip","buttons":[{"extend":"excel","text":"Descargar Excel","title":"Reporte de Ventas por País"}],"language":{"url":"//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json"},"columnDefs":[{"targets":2,"render":"function(data, type, row, meta) {\n    return type !== 'display' ? data : DTWidget.formatCurrency(data, \"$\", 0, 3, \".\", \".\", true, null);\n  }"},{"className":"dt-right","targets":2},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"País","targets":1},{"name":"Ventas","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":["options.columnDefs.0.render"],"jsHooks":[]}</script>
+<div>
+<figure class="figure">
+<p><img src="Tablero_trabajo_final_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
 </div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Con el coord_flip() se puede girar las barras a horizontal.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>      <span class="co">#coord_flip()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 
