@@ -18,8 +18,14 @@ library(tidyverse)
 library(openxlsx)
 library(janitor)
 library(DT)
+```
 
 
+
+```{r}
+#| label: limpieza
+# Limpieza del entorno de trabajo
+rm(list = ls())
 
 # Carga de datos desde un enlace de Google Sheets
 datos <- read.xlsx("C://Users//Brian.Ruiz//OneDrive - Universidad Tecnológica de Pereira//1. UTP//2. Introducción a la Ciencia de Datos//2026-03-Trabajo Fina//DATA//Base_tecnologia.xlsx")
@@ -27,7 +33,11 @@ datos <- read.xlsx("C://Users//Brian.Ruiz//OneDrive - Universidad Tecnológica d
 # Limpieza de nombres de columnas
 datos <- datos %>% clean_names()
 
-# Agrupación por país y resumen
+```
+
+
+
+```{r}
 datos %>% group_by(pais) %>%
   summarise(ventas = sum(ventas)) %>%
   rename("País" = pais,Ventas = ventas) %>%
@@ -54,15 +64,18 @@ datos %>% group_by(pais) %>%
     digits = 0
   )
 
+```
 
+
+
+```{r}
 
 ```
 
-archivo_path <- "C:/Users/Brian.Ruiz/OneDrive - Universidad Tecnológica de Pereira/1. UTP/2. Introducción a la Ciencia de Datos/2026-03-Trabajo Fina/DATA/Base_tecnologia.xlsx"
 
+```{r}
 
-
-
+```
 
 
 
