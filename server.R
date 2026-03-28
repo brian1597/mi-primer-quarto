@@ -1,44 +1,13 @@
----
-title: "Tablero_trabajo_final"
----
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-<!-- quarto publish gh-pages Tablero_trabajo_final.qmd -->
+# Código para el archivo SERVER
 
 
-
-
-```{r}
-library(tidyverse)
-library(openxlsx)
-library(janitor)
-library(DT)
-library(scales)
-```
-
-
-
-```{r}
-#| label: limpieza
-# Limpieza del entorno de trabajo
-rm(list = ls())
-
-# Carga de datos desde un enlace de Google Sheets
-#datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vTs-CC_vSsNazKCuLlF8cQZpbPpI1-AYgAyFKB7Z6CyRh_BXWYclZ0ykOy37I7KQg/pub?output=xlsx&authuser=1")
-
-datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRLYTnqc_ARDjofjUvjZ4X8F1K2aj9cAvOiKE0JTwwcKWr5sSQUqqeP-jcvq6FJkg/pub?output=xlsx")
-
-# Limpieza de nombres de columnas
-datos <- datos %>% clean_names()
-
-```
-
-
-```{r}
-# Creación de gráfico de barras por país
+server <- function(input, output, session) {
+  
+  # Lógica para el gráfico
+  output$graficoPrincipal <- renderPlot(
+    {
+      # Creación de gráfico de barras por país
       datos %>% group_by(pais) %>%
         summarise(ventas = sum(ventas)) %>%
         mutate(porcentaje = percent(ventas/sum(ventas),1)) %>%
@@ -72,14 +41,39 @@ datos <- datos %>% clean_names()
                                      "#fe9929","#ec7014"))
       # Con el coord_flip() se puede girar las barras a horizontal.
       #coord_flip()
+  })
+  
+  # Lógica para la tabla
+  output$tabla_paises <- DT::renderDataTable(
+    {
+      datos %>% group_by(pais) %>%
+        summarise(ventas = sum(ventas)) %>%
+        rename("País" = pais, "Ventas" = ventas) %>%
+        datatable(
+          extensions = 'Buttons', # Activa la extensión de botones
+          options = list(
+            dom = 'Bfrtip',       # Define la posición de los elementos (B = Buttons)
+            buttons = list(
+              list(
+                extend = 'excel',
+                text = 'Descargar Excel',
+                title = 'Reporte de Ventas por País'
+              )
+            ),
+            language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json') # Opcional: Idioma español
+          )
+        ) %>%
+        # 3. Formateo de moneda ($) y miles (.)
+        formatCurrency(
+          columns = 'Ventas',
+          currency = '$',
+          interval = 3,
+          mark = '.',
+          digits = 0
+        )
 
-```
+    }
+  )  
 
-
-```{r}
-
-
-```
-
-
+}
 
