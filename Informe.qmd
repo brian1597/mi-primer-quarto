@@ -1,14 +1,7 @@
 ---
-title: "Tablero_trabajo_final"
+title: "Gráficos Interactivos con GGIRAPH y PLOTLY"
+author: "Brian Ruiz"
 ---
-
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-<!-- quarto publish gh-pages Tablero_trabajo_final.qmd -->
-
-
 
 
 ```{r}
@@ -18,14 +11,16 @@ library(openxlsx)
 library(janitor)
 library(DT)
 library(scales)
+library(ggiraph)
 ```
 
 
 
 ```{r}
+#| warning: false
 rm(list = ls()) # Limpieza del entorno de trabajo
 
-datos <- read.xlsx("C:\\Users\\Brian.Ruiz\\OneDrive - Universidad Tecnológica de Pereira\\1. UTP\\2. Introducción a la Ciencia de Datos\\2026-03-Trabajo Fina\\DATA\\Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx")
+datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
 
 datos <- datos %>% clean_names() # Limpieza de nombres de columnas
 datos <- datos %>% select (-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo )
@@ -33,21 +28,39 @@ datos <- datos %>% select (-codigo_dane_departamento, -codigo_dane_municipio, -c
 
 
 ```{r}
-datos %>% group_by(cultivo) %>%
-  summarise(produccion = sum(produccion)) %>%
-  ggplot(aes(x = cultivo, y = produccion, fill = produccion)) +
-  geom_col(show.legend = FALSE) +
-  geom_text(aes(label = cultivo), vjust = -0.5, size = 3) +
-  labs(
-    title = "Media de pases por equipo",
-    x = "Equipo",
-    y = "Media de pases"
-  ) +
-  scale_fill_brewer(palette = "Blues") +
-  theme_minimal() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5))
-
+nombres_top3 <- datos %>% group_by(cultivo) %>%
+  summarise(produccion_total = sum(produccion)) %>% 
+  arrange(desc(produccion_total)) %>% 
+  slice_head(n = 3) %>% # filtro los 3 cultivos de mayor producción
+  pull(cultivo) # Saco los nombres de los 3 cultivos que graficaré :)
 ```
+
+
+```{r}
+p  <- datos %>% 
+  filter(cultivo %in% nombres_top3 ) %>% 
+  group_by(ano, cultivo) %>%
+  summarise(produccion_anual = round(sum(produccion)), .groups = "drop") %>% 
+  
+  ggplot(aes(x = ano, y = produccion_anual, color = cultivo)) +
+  geom_line_interactive(aes(tooltip = cultivo, data_id = cultivo)) +
+  geom_point_interactive(aes(tooltip = paste0("Año: ", ano, "\nProducción: ", comma(produccion_anual)))) +
+
+  # 2. Corregimos el eje Y para que use puntos de miles
+  scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
+  
+  labs(
+    title = str_wrap("Evolución de la Producción de los 3 cultivos principales de Colombia entre 2019 y 2024", width = 55), 
+    x = "Año", 
+    y = "Producción (Toneladas)"
+  )+
+  
+  theme_minimal() 
+
+girafe(ggobj = p)
+```
+
+
 
 
 
