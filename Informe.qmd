@@ -1,0 +1,81 @@
+---
+title: "Tablero_trabajo_final"
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+<!-- quarto publish gh-pages Tablero_trabajo_final.qmd -->
+
+
+
+
+```{r}
+library(tidyverse)
+library(openxlsx)
+library(janitor)
+library(DT)
+library(scales)
+```
+
+
+
+```{r}
+#| label: limpieza
+# Limpieza del entorno de trabajo
+rm(list = ls())
+
+# Carga de datos desde un enlace de Google Sheets
+#datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vTs-CC_vSsNazKCuLlF8cQZpbPpI1-AYgAyFKB7Z6CyRh_BXWYclZ0ykOy37I7KQg/pub?output=xlsx&authuser=1")
+
+datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRLYTnqc_ARDjofjUvjZ4X8F1K2aj9cAvOiKE0JTwwcKWr5sSQUqqeP-jcvq6FJkg/pub?output=xlsx")
+
+# Limpieza de nombres de columnas
+datos <- datos %>% clean_names()
+
+```
+
+
+```{r}
+# Creación de gráfico de barras por país
+      datos %>% group_by(pais) %>%
+        summarise(ventas = sum(ventas)) %>%
+        mutate(porcentaje = percent(ventas/sum(ventas),1)) %>%
+        # Identificamos los ejes de la variable, no importa si vas a hacer
+        # un gráfico de barras o de columnas, porque al final lo puedes girar.
+        ggplot(aes(x = pais, y = ventas, fill = pais,
+                   label = paste(porcentaje,"\n",ventas," ")))+
+        geom_col()+
+        # Estos ajustes de vjust y hjust funcionan muy bien, sin embargo, los puedes ajustar.
+        geom_text(vjust = 0.5, hjust = -0.1, size = 3,position = position_dodge(width = 1))+
+        # Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.
+        # pues con ella se hace que el eje sea un 10% más grande que el valor máximo.
+        ## ☢️🚧 scale_y_continuous(limits = c(0, max(datos$n) * 1.1)) +
+        labs(x = "Nombre_Eje_X", y = "Nombre_Eje_X",
+             title = str_wrap("Cantidad y porcentaje de CONTINUACION DEL TITULO ",width = 30),
+             caption="Texto informativo en la parte inferior derecha.")+
+        theme(plot.title = element_text(size=15, face='bold', color="#525252", hjust=0.5))+
+        # Con esto se evita el cuadro de la leyenda.
+        theme(legend.position="none")+
+        # Tamaño del texto de los ejes.
+        theme(axis.text.y = element_text(size = 8))+
+        theme(axis.text.x = element_text(size = 10))+
+        # Hace que se ajuste el largo de los textos del eje X,
+        # para que no se superpongan.
+        scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+
+        # Una paleta de colores recomendad, pero puedes cambiarla.
+        scale_fill_manual(values = c("#2171b5",
+                                     "#4292c6","#74a9cf",
+                                     "#41b6c4","#7fcdbb","#238b45",#"#41ab5d",
+                                     "#78c679","#c7e9b4","#edf8b1","#fee391","#fec44f",
+                                     "#fe9929","#ec7014"))
+      # Con el coord_flip() se puede girar las barras a horizontal.
+      #coord_flip()
+
+```
+
+
+
+
+
