@@ -76,10 +76,6 @@ datos <- datos %>% clean_names()
 ```
 
 
-```{r}
-
-
-```
 
 
 
