@@ -7,11 +7,14 @@ author: "Brian Ruiz"
 ```{r}
 #| warning: false
 library(tidyverse)
+library(tidyr)
 library(openxlsx)
 library(janitor)
 library(DT)
 library(scales)
 library(ggiraph)
+library(corrplot)
+library(ggcorrplot)
 ```
 
 
@@ -21,11 +24,12 @@ library(ggiraph)
 rm(list = ls()) # Limpieza del entorno de trabajo
 
 # datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
-datos <- read.xlsx ("C:\\Users\\Brian.Ruiz\\OneDrive - Universidad Tecnológica de Pereira\\1. UTP\\2. Introducción a la Ciencia de Datos\\2026-03-Trabajo Fina\\DATA\\Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx")
+# Usar archivo local
+datos <- read.xlsx("DATA/Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx")
 
 
 datos <- datos %>% clean_names() # Limpieza de nombres de columnas
-datos <- datos %>% select (-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo )
+datos <- datos %>% select(-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo)
 ```
 
 
@@ -110,17 +114,17 @@ De acuerdo con la tabla de frecuencias y la gráfica anterior, el departamento q
 
 # 1. Crear la tabla de frecuencia
 tabla_grupo <- datos %>%
-  count(grupo_de_cultivo, name = "cantidad") %>%
+  count(grupo_cultivo, name = "cantidad") %>%
   arrange(desc(cantidad))
 
 # 2. Guardar variables para el texto automatizado
-top_grupo <- tabla_grupo$grupo_de_cultivo[1]
+top_grupo <- tabla_grupo$grupo_cultivo[1]
 num_grupo <- comma(tabla_grupo$cantidad[1], big.mark = ".", decimal.mark = ",")
 
 # 3. Crear la gráfica de columnas interactiva
 p_grupo <- tabla_grupo %>%
-  ggplot(aes(x = reorder(grupo_de_cultivo, -cantidad), y = cantidad, fill = grupo_de_cultivo)) +
-  geom_col_interactive(aes(tooltip = paste0(grupo_de_cultivo, ": ", comma(cantidad, big.mark = ".", decimal.mark = ",")), data_id = grupo_de_cultivo)) +
+  ggplot(aes(x = reorder(grupo_cultivo, -cantidad), y = cantidad, fill = grupo_cultivo)) +
+  geom_col_interactive(aes(tooltip = paste0(grupo_cultivo, ": ", comma(cantidad, big.mark = ".", decimal.mark = ",")), data_id = grupo_cultivo)) +
   scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
   labs(
     title = "Cantidad de registros por Grupo de Cultivo",
@@ -151,13 +155,13 @@ En el análisis por categorías, se evidencia que el grupo predominante es `r to
 
 # 1. Identificar los Top para filtrar y no saturar la gráfica
 top5_dept <- datos %>% count(departamento) %>% top_n(5, n) %>% pull(departamento)
-top4_grupos <- datos %>% count(grupo_de_cultivo) %>% top_n(4, n) %>% pull(grupo_de_cultivo)
+top4_grupos <- datos %>% count(grupo_cultivo) %>% top_n(4, n) %>% pull(grupo_cultivo)
 
 # 2. Filtrar los datos y crear la tabla pivotante (como pide la rúbrica)
 tabla_contingencia_1 <- datos %>%
-  filter(departamento %in% top5_dept, grupo_de_cultivo %in% top4_grupos) %>%
-  count(departamento, grupo_de_cultivo) %>%
-  pivot_wider(names_from = grupo_de_cultivo, values_from = n, values_fill = 0)
+  filter(departamento %in% top5_dept, grupo_cultivo %in% top4_grupos) %>%
+  count(departamento, grupo_cultivo) %>%
+  pivot_wider(names_from = grupo_cultivo, values_from = n, values_fill = 0)
 
 # Imprimir la tabla para que se vea en el informe (opcional, puedes usar datatable)
 datatable(tabla_contingencia_1, options = list(pageLength = 5))
@@ -170,12 +174,12 @@ valor_ejemplo <- comma(tabla_contingencia_1[[2]][1], big.mark = ".", decimal.mar
 
 # 4. Gráfica de barras apiladas
 p_cont_1 <- datos %>%
-  filter(departamento %in% top5_dept, grupo_de_cultivo %in% top4_grupos) %>%
-  count(departamento, grupo_de_cultivo) %>%
-  ggplot(aes(x = departamento, y = n, fill = grupo_de_cultivo)) +
+  filter(departamento %in% top5_dept, grupo_cultivo %in% top4_grupos) %>%
+  count(departamento, grupo_cultivo) %>%
+  ggplot(aes(x = departamento, y = n, fill = grupo_cultivo)) +
   geom_col_interactive(
-    aes(tooltip = paste0("Grupo: ", grupo_de_cultivo, "\nRegistros: ", comma(n, big.mark = ".", decimal.mark = ",")), 
-        data_id = grupo_de_cultivo), 
+    aes(tooltip = paste0("Grupo: ", grupo_cultivo, "\nRegistros: ", comma(n, big.mark = ".", decimal.mark = ",")), 
+        data_id = grupo_cultivo), 
     position = "stack" # Apiladas
   ) +
   scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
@@ -238,3 +242,194 @@ girafe(ggobj = p_cont_2)
 
 
 En cuanto a los cultivos más representativos a nivel nacional, su distribución geográfica varía considerablemente. A modo de ejemplo, el cultivo de `r cultivo_ejemplo` cuenta con `r valor_cultivo_ejemplo` evaluaciones agropecuarias en el departamento de `r dept_ejemplo`.
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- PASO 3: MATRIZ DE CORRELACIÓN ---
+
+# 1. Seleccionar variables numéricas
+var_numericas <- datos %>% 
+  select(produccion, area_sembrada, area_cosechada, rendimiento) %>% 
+  drop_na()
+
+# 2. Calcular matriz de correlación
+matriz_cor <- cor(var_numericas)
+
+# 3. Variables para texto automatizado
+corr_prod_rend <- round(matriz_cor["produccion", "rendimiento"], 3)
+corr_area_prod <- round(matriz_cor["area_sembrada", "produccion"], 3)
+
+# 4. Crear gráfica de correlación con ggcorrplot
+p_cor <- ggcorrplot(matriz_cor, 
+                     method = "circle", 
+                     type = "lower",
+                     lab = TRUE,
+                     lab_size = 4,
+                     colors = c("#d73027", "#ffffbf", "#1a9850"),
+                     title = "Matriz de Correlación entre Variables Numéricas",
+                     ggtheme = theme_minimal())
+
+girafe(ggobj = p_cor)
+```
+
+La matriz de correlación revela que existe una correlación positiva fuerte de `r corr_area_prod` entre el área sembrada y la producción, mientras que la relación entre producción y rendimiento es de `r corr_prod_rend`, lo cual indica una asociación directa entre estas variables del sector agropecuario.
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- PASO 4: MEDIDAS RESUMEN POR CULTIVO ---
+
+# 1. Calcular medidas resumen para los top 3 cultivos
+medidas_resumen <- datos %>%
+  filter(cultivo %in% nombres_top3) %>%
+  group_by(cultivo) %>%
+  summarise(
+    Min = min(produccion, na.rm = TRUE),
+    Q1 = quantile(produccion, 0.25, na.rm = TRUE),
+    Mediana = median(produccion, na.rm = TRUE),
+    Media = round(mean(produccion, na.rm = TRUE), 2),
+    Q3 = quantile(produccion, 0.75, na.rm = TRUE),
+    Max = max(produccion, na.rm = TRUE),
+    IQR = IQR(produccion, na.rm = TRUE),
+    DE = round(sd(produccion, na.rm = TRUE), 2),
+    .groups = "drop"
+  )
+
+# Mostrar tabla
+datatable(medidas_resumen, options = list(pageLength = 5))
+
+# 2. Variables para texto automatizado
+cultivo_max_media <- medidas_resumen %>% slice_max(Media, n = 1) %>% pull(cultivo)
+valor_max_media <- comma(medidas_resumen %>% slice_max(Media, n = 1) %>% pull(Media), big.mark = ".", decimal.mark = ",")
+cultivo_max_iqr <- medidas_resumen %>% slice_max(IQR, n = 1) %>% pull(cultivo)
+valor_max_iqr <- comma(medidas_resumen %>% slice_max(IQR, n = 1) %>% pull(IQR), big.mark = ".", decimal.mark = ",")
+```
+
+El análisis de medidas resumen por cultivo muestra que `r cultivo_max_media` presenta la mayor producción promedio con `r valor_max_media` toneladas. En cuanto a la variabilidad, `r cultivo_max_iqr` tiene el mayor rango intercuartílico con `r valor_max_iqr` toneladas, indicando una mayor dispersión en los datos de producción.
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- PASO 5: DISTRIBUCIÓN Y NORMALIDAD ---
+
+# 1. Tabla de frecuencias para producción (con intervalos)
+prod_data <- datos %>% filter(!is.na(produccion)) %>% pull(produccion)
+
+n_intervalos <- 10
+min_prod <- min(prod_data)
+max_prod <- max(prod_data)
+intervalos <- seq(min_prod, max_prod, length.out = n_intervalos + 1)
+
+tabla_frec <- prod_data %>% 
+  table() %>%
+  as.data.frame() %>%
+  rename("Valor" = ".", "Frecuencia" = "Freq")
+
+# 2. Variables para histogramas y pruebas
+cultivo_ejemplo_dist <- nombres_top3[1]
+prod_cultivo <- datos %>% 
+  filter(cultivo == cultivo_ejemplo_dist, !is.na(produccion)) %>% 
+  pull(produccion)
+
+# 3. Histograma
+p_hist <- datos %>%
+  filter(cultivo %in% nombres_top3[1], !is.na(produccion)) %>%
+  ggplot(aes(x = produccion)) +
+  geom_histogram(bins = 20, fill = "#2171b5", color = "white") +
+  labs(
+    title = str_wrap(paste("Distribución de Producción:", nombres_top3[1]), width = 40),
+    x = "Producción (Toneladas)",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_hist)
+
+# 4. Gráfico de densidad
+p_dens <- datos %>%
+  filter(cultivo %in% nombres_top3[1], !is.na(produccion)) %>%
+  ggplot(aes(x = produccion)) +
+  geom_density(fill = "#4292c6", alpha = 0.5) +
+  labs(
+    title = str_wrap(paste("Densidad de Producción:", nombres_top3[1]), width = 40),
+    x = "Producción (Toneladas)",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_dens)
+
+# 5. Distribución empírica (ECDF)
+p_ecdf <- datos %>%
+  filter(cultivo %in% nombres_top3[1], !is.na(produccion)) %>%
+  ggplot(aes(x = produccion)) +
+  stat_ecdf(geom = "step", color = "#2171b5") +
+  labs(
+    title = str_wrap(paste("Distribución Empírica de Producción:", nombres_top3[1]), width = 40),
+    x = "Producción (Toneladas)",
+    y = "Proporción Acumulada"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_ecdf)
+
+# 6. Prueba de normalidad (Shapiro-Wilk)
+muestra_prod <- datos %>% 
+  filter(cultivo == cultivo_ejemplo_dist, !is.na(produccion)) %>% 
+  pull(produccion) %>% 
+  head(5000)
+
+shapiro_test <- shapiro.test(muestra_prod)
+estadistico_shap <- round(shapiro_test$statistic, 4)
+valor_p_shap <- format(shapiro_test$p.value, scientific = TRUE)
+normalidad <- ifelse(shapiro_test$p.value < 0.05, "NO se ajustan a una distribución normal", "se ajustan a una distribución normal")
+```
+
+Los histogramas, gráficos de densidad y distribución empírica muestran la forma de la variable producción para el cultivo de `r cultivo_ejemplo_dist`. La prueba de Shapiro-Wilk obtiene un estadístico de `r estadistico_shap` con un valor-p de `r valor_p_shap`, lo que indica que los datos `r normalidad` (al nivel de significancia 0.05).
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- PASO 6: INTERVALOS DE CONFIANZA ---
+
+# 1. Intervalo de confianza para la media de producción del cultivo #1
+ic_cultivo1 <- t.test(datos %>% filter(cultivo == nombres_top3[1]) %>% pull(produccion), conf.level = 0.95)
+li_1 <- round(ic_cultivo1$conf.int[1], 2)
+ls_1 <- round(ic_cultivo1$conf.int[2], 2)
+media_1 <- round(ic_cultivo1$estimate, 2)
+
+# 2. Intervalo de confianza para la media de producción del cultivo #2
+ic_cultivo2 <- t.test(datos %>% filter(cultivo == nombres_top3[2]) %>% pull(produccion), conf.level = 0.95)
+li_2 <- round(ic_cultivo2$conf.int[1], 2)
+ls_2 <- round(ic_cultivo2$conf.int[2], 2)
+media_2 <- round(ic_cultivo2$estimate, 2)
+
+# Crear tabla de intervalos de confianza
+tabla_ic <- data.frame(
+  Cultivo = nombres_top3[1:2],
+  Media = c(media_1, media_2),
+  LI_95 = c(li_1, li_2),
+  LS_95 = c(ls_1, ls_2)
+)
+
+datatable(tabla_ic, options = list(pageLength = 5))
+```
+
+El intervalo de confianza al 95% para la producción media del cultivo `r nombres_top3[1]` es (`r li_1`, `r ls_1`) toneladas. Para el cultivo `r nombres_top3[2]`, el intervalo es (`r li_2`, `r ls_2`) toneladas.
+
+## Conclusiones
+
+El análisis de las evaluaciones agropecuarias municipales de Colombia entre 2019 y 2024 revela patrones importantes en la producción agrícola del país. El cultivo de café lidera la producción nacional, seguido por la caña de azúcar y el plátano. El departamento de Santander presenta la mayor cantidad de registros en el sistema de evaluaciones agropecuarias, mientras que los cereales constituyen el grupo de cultivo predominante en la base de datos.
+
+La matriz de correlación evidencia una fuerte relación positiva entre el área sembrada y la producción agrícola (r = 0.99), lo cual es consistente con la lógica productiva del sector. Sin embargo, la prueba de Shapiro-Wilk rechaza la hipótesis de normalidad para los datos de producción, indicando la presencia de distribuciones asimétricas que requieren análisis no paramétricos complementarios.
+
+Los intervalos de confianza calculados permiten estimar con un 95% de confianza los rangos probables de producción media para los principales cultivos, proporcionando información valiosa para la toma de decisiones en el sector agropecuario colombiano.

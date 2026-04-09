@@ -1,0 +1,680 @@
+# Guía de Funciones R - Plantilla
+
+> **Nota:** Este archivo es una plantilla de referencia. Los ejemplos usan datos de ejemplo y deben adaptarse a tu contexto real.
+
+------------------------------------------------------------------------
+
+## 📚 0. Librerías Indispensables
+
+> **Nota:** Estas librerías son las más utilizadas en análisis de datos con R. Se recomienda instalarlas con `install.packages("nombre")` y cargarlas con `library(nombre)`.
+
+| Librería | Propósito | Funciones Clave |
+|----|----|----|
+| **tidyverse** | Meta-paquete para ciencia de datos (dplyr, tidyr, ggplot2, etc.) | `%>%`, `select()`, `filter()`, `mutate()`, `group_by()`, `summarise()` |
+| **dplyr** | Manipulación de datos | `select()`, `filter()`, `mutate()`, `arrange()`, `group_by()`, `summarise()`, `join()` |
+| **tidyr** | Limpieza y organización de datos | `pivot_longer()`, `pivot_wider()`, `separate()`, `unite()`, `drop_na()`, `fill()` |
+| **ggplot2** | Visualización de datos | `ggplot()`, `aes()`, `geom_col()`, `geom_bar()`, `geom_boxplot()`, `geom_histogram()` |
+| **readr** | Lectura de archivos de texto | `read_csv()`, `read_tsv()`, `read_delim()` |
+| **readxl** | Lectura de archivos Excel | `read_excel()`, `excel_sheets()` |
+| **openxlsx** | Lectura y escritura de archivos Excel | `read.xlsx()`, `write.xlsx()` |
+| **lubridate** | Manejo de fechas | `ymd()`, `dmy()`, `year()`, `month()`, `day()`, `wday()` |
+| **stringr** | Manipulación de texto | `str_to_upper()`, `str_to_lower()`, `str_trim()`, `str_replace()`, `str_sub()` |
+| **flextable** | Creación de tablas formateadas | `flextable()`, `set_caption()`, `theme_vanilla()`, `autofit()` |
+| **scales** | Escalas y formatos para gráficos | `percent()`, `dollar()`, `comma()`, `number()` |
+| **janitor** | Limpieza de nombres de columnas | `clean_names()`, `tabyl()`, `remove_empty()` |
+| **forcats** | Manejo de factores (variables categóricas) | `fct_reorder()`, `fct_lump()`, `fct_recode()` |
+| **purrr** | Programación funcional | `map()`, `map_dfr()`, `reduce()` |
+| **httr** / **jsonlite** | Consumo de APIs | `GET()`, `fromJSON()` |
+
+### Instalación de las principales librerías
+
+```{r}
+# Instalar tidyverse (incluye dplyr, tidyr, ggplot2, readr, etc.)
+install.packages("tidyverse")
+
+# Instalar otras librerías esenciales
+install.packages(c("openxlsx", "lubridate", "flextable", "scales", "janitor", "forcats", "purrr"))
+
+# Cargar librerías
+library(tidyverse)   # Carga dplyr, tidyr, ggplot2, readr, etc.
+library(openxlsx)    # Para archivos Excel
+library(lubridate)   # Para fechas
+library(flextable)   # Para tablas
+library(janitor)     # Para limpieza
+```
+
+> **Tip:** En RStudio, puedes ver los paquetes instalados en el panel "Packages". Para actualizar todos los paquetes de tidyverse: `tidyverse_update()`.
+
+------------------------------------------------------------------------
+
+## 📂 0.1. Métodos para Leer Datos
+
+> **Nota:** Esta sección muestra los métodos más comunes para importar datos a R desde diferentes fuentes.
+
+### Leer archivos Excel (.xlsx, .xls)
+
+```{r}
+# Con openxlsx (recomendado para archivos grandes)
+library(openxlsx)
+
+# Leer una hoja específica
+datos <- read.xlsx("ruta/archivo.xlsx", sheet = "Nombre_Hoja")
+
+# Leer por índice de hoja (1 = primera hoja)
+datos <- read.xlsx("ruta/archivo.xlsx", sheet = 1)
+
+# Leer todas las hojas de un Excel
+todas_hojas <- lapply(excel_sheets("ruta/archivo.xlsx"), read.xlsx, xlsxFile = "ruta/archivo.xlsx")
+names(todas_hojas) <- excel_sheets("ruta/archivo.xlsx")
+
+# Con readxl (parte de tidyverse)
+library(readxl)
+datos <- read_excel("ruta/archivo.xlsx", sheet = "Nombre_Hoja")
+```
+
+### Leer archivos CSV
+
+```{r}
+# Con readr (recomendado, más rápido)
+library(readr)
+datos <- read_csv("ruta/archivo.csv")           # Separador coma
+datos <- read_csv2("ruta/archivo.csv")          # Separador punto y coma
+datos <- read_delim("ruta/archivo.txt", delim = "|")  # Delimitador personalizado
+
+# Con función base de R
+datos <- read.csv("ruta/archivo.csv", header = TRUE, stringsAsFactors = FALSE)
+datos <- read.csv2("ruta/archivo.csv")  # Para archivos con decimales con coma
+
+# Especificar codificación (si hay problemas con tildes)
+datos <- read_csv("ruta/archivo.csv", locale = locale(encoding = "UTF-8"))
+datos <- read.csv("ruta/archivo.csv", fileEncoding = "UTF-8")
+```
+
+### Leer archivos de texto (.txt)
+
+```{r}
+# Con readr
+datos <- read_delim("ruta/archivo.txt", delim = "\t")  # Tabulador
+datos <- read_table("ruta/archivo.txt")  # Espacios en blanco
+
+# Con funciones base
+datos <- read.table("ruta/archivo.txt", header = TRUE, sep = "\t")
+datos <- scan("ruta/archivo.txt", what = character())  # Lectura simple
+```
+
+### Leer desde Google Sheets
+
+```{r}
+# Con googlesheets4
+library(googlesheets4)
+gs4_deauth()  # Si la hoja es pública
+
+# Leer hoja por URL
+datos <- read_sheet("https://docs.google.com/spreadsheets/d/ID_ABAJO/edit")
+
+# Leer por nombre de hoja
+datos <- read_sheet("ID_O_URL", sheet = "Nombre_Hoja")
+```
+
+### Leer desde APIs (JSON)
+
+```{r}
+library(httr)
+library(jsonlite)
+
+# GET request básico
+respuesta <- GET("https://api.ejemplo.com/datos")
+datos <- fromJSON(content(respuesta, as = "text"))
+
+# Con query parameters
+respuesta <- GET("https://api.ejemplo.com/datos", query = list(param1 = "valor", param2 = 100))
+datos <- fromJSON(content(respuesta, as = "text"))
+```
+
+### Leer desde bases de datos SQL
+
+```{r}
+# Con DBI y RMySQL / RPostgreSQL / RSQLite
+library(DBI)
+
+# Conexión a SQLite
+con <- dbConnect(RSQLite::SQLite(), "mi_base.db")
+
+# Leer tabla completa
+datos <- dbReadTable(con, "nombre_tabla")
+
+# Consulta SQL personalizada
+datos <- dbGetQuery(con, "SELECT * FROM tabla WHERE condicion = 'valor'")
+
+# Cerrar conexión
+dbDisconnect(con)
+```
+
+### Leer desde otros formatos
+
+```{r}
+# Archivos SPSS, Stata, SAS
+library(haven)
+datos_spss <- read_sav("archivo.sav")
+datos_stata <- read_dta("archivo.dta")
+datos_sas <- read_sas("archivo.sas7bdat")
+
+# Archivos RDS (objetos R guardados)
+datos <- readRDS("ruta/objeto.rds")
+
+# Archivos RDA/RData
+load("ruta/datos.RData")
+
+# Archivos feather (rápido para grandes volúmenes)
+library(feather)
+datos <- read_feather("ruta/datos.feather")
+```
+
+### Opciones útiles al leer datos
+
+```{r}
+# Especificar tipos de columnas (importante para evitar errores)
+datos <- read_csv("archivo.csv",
+  col_types = cols(
+    columna1 = col_character(),
+    columna2 = col_double(),
+    columna3 = col_date(format = "%Y-%m-%d")
+  )
+)
+
+# Saltar líneas al inicio
+datos <- read_csv("archivo.csv", skip = 5)
+
+# Usar primera fila como nombres (o no)
+datos <- read_csv("archivo.csv", col_names = TRUE)  # 默认
+datos <- read_csv("archivo.csv", col_names = FALSE)  # Sin encabezado
+
+# Manejo de NA
+datos <- read_csv("archivo.csv", na = c("", "NA", "N/A", "null"))
+
+# Limitar filas leídas
+datos <- read_csv("archivo.csv", n_max = 1000)
+```
+
+> **Nota:** Para archivos muy grandes (\>100MB), considera usar `data.table::fread()` que es mucho más rápido.
+
+------------------------------------------------------------------------
+
+## 📊 1. Diccionario de Estadísticos
+
+> **¿Cuándo usarlo?** Cuando necesitas calcular métricas básicas de resumen para entender la distribución de tus datos. Útil para análisis exploratorio inicial y para comparar grupos.
+
+| Concepto | Descripción | R Individual | R Grupal |
+|----|----|----|----|
+| **Media (Mean)** | Promedio: suma de valores / número de datos | `mean(x, na.rm = TRUE)` | `summary(df)` |
+| **Mediana (Median)** | Valor central cuando los datos están ordenados (50% arriba, 50% abajo) | `median(x, na.rm = TRUE)` | `summary(df)` |
+| **Varianza** | Promedio de cuadrados de desviaciones respecto a la media | `var(x)` | `apply(df, 2, var)` |
+| **Desviación Estándar** | Raíz cuadrada de la varianza. En boxplots lo visual es cercano a esto | `sd(x)` | `apply(df, 2, sd)` |
+| **Coeficiente de Variación (CV)** | Dispersión relativa: desviación estándar / media (como %) | `sd(x) / mean(x)` | `apply(df, 2, function(x) sd(x) / mean(x))` |
+
+------------------------------------------------------------------------
+
+## 🔧 2. Manipulación de Datos
+
+> **¿Cuándo usarlo?** Cuando necesitas transformar, limpiar o reorganizar tu dataframe. Estas funciones permiten seleccionar, eliminar, crear o modificar columnas.
+
+### Seleccionar columnas
+
+```{r}
+agua %>% select(fecha, equipo, goles_favor, goles_contra)
+```
+
+### Eliminar columnas
+
+```{r}
+agua <- agua %>% select(-goles_favor, -goles_contra)
+```
+
+### Reorganizar columnas
+
+```{r}
+agua <- agua %>% relocate(tipo_cartera, .after = cartera_ajustada)
+```
+
+### Eliminar duplicados
+
+```{r}
+jugadoras <- jugadoras %>% distinct(JUGADORA, .keep_all = TRUE)
+```
+
+### Crear o modificar columnas (mutate)
+
+```{r}
+# Nueva columna calculada
+agua <- agua %>% mutate(consumo_doble = consumo * 2)
+
+# Múltiples columnas a la vez
+agua <- agua %>% mutate(
+  consumo_doble = consumo * 2,
+  consumo_mitad = consumo / 2,
+  .after = consumo  # posicionarla después de 'consumo'
+)
+```
+
+### Separar una columna en varias
+
+```{r}
+# Separar "fecha" en día, mes, año
+agua <- agua %>% separate(fecha, into = c("dia", "mes", "año"), sep = "/")
+```
+
+### Unir columnas en una
+
+```{r}
+agua <- agua %>% unite("fecha_completa", dia, mes, año, sep = "-")
+```
+
+------------------------------------------------------------------------
+
+## 🔀 3. Estructuras de Control
+
+> **¿Cuándo usarlo?** Cuando necesitas aplicar lógica condicional a tus datos. Permite crear nuevas columnas basadas en condiciones o ejecutar código según el valor de variables.
+
+### IF simple
+
+```{r}
+temperatura <- 28
+if (temperatura > 25) {
+  print("Hace calor, enciende el aire.")
+} else {
+  print("Clima agradable.")
+}
+```
+
+### IFELSE (vectorizado)
+
+```{r}
+agua <- agua %>% 
+  mutate(
+    analisis_consumo = ifelse(consumo > 0 & 1 == 1 | 1 != 1, "Tiene consumo", "no se baño"),
+    .after = consumo
+  )
+```
+
+### CASE WHEN (múltiples condiciones)
+
+```{r}
+agua <- agua %>% 
+  mutate(
+    tipo_cartera = case_when(
+      cartera_ajustada < 0 ~ "SALDO A FAVOR",
+      cartera_ajustada == 0 ~ "NO DEBE NADA",
+      between(cartera_ajustada, 0, 1000) ~ "DEBE POQUITO",
+      between(cartera_ajustada, 1000, 10000) ~ "DEUDA MEDIANA",
+      cartera_ajustada > 10000 ~ "GRAN DEUDOR"
+    ),
+    .after = cartera_ajustada
+  )
+```
+
+------------------------------------------------------------------------
+
+## 📋 4. Transformaciones
+
+> **¿Cuándo usarlo?** Para resumir, filtrar y agregar datos. Esencial para análisis exploratorio y para obtener insights de tus datos.
+
+### Contar y ordenar
+
+```{r}
+agua %>% 
+  count(barrio) %>% 
+  arrange() %>%                      # ascendente
+  arrange(desc(n)) %>%               # descendente
+  rename(el_barrio = barrio, "Cantidad por barrio" = n)
+```
+
+### Filtrar datos
+
+```{r}
+# Un valor exacto
+copa %>% filter(equipo == "COLOMBIA")
+
+# Por número
+copa %>% filter(mes == 1)
+
+# Múltiples condiciones (Y)
+copa %>% filter(equipo == "COLOMBIA" & mes == 1)
+
+# Múltiples valores (O)
+copa %>% filter(equipo %in% c("COLOMBIA", "BRASIL", "ARGENTINA"))
+
+# Excluir valores
+copa %>% filter(!equipo %in% c("COLOMBIA", "BRASIL"))
+```
+
+### Agrupar y resumir
+
+```{r}
+agua %>% 
+  filter(mes == 1) %>% 
+  group_by(uso) %>% 
+  summarise(
+    Cantidad = n(),
+    Consumo_enero = sum(consumo),
+    Promedio_por_uso = round(mean(consumo))
+  )
+```
+
+### Convertir número a fecha
+
+```{r}
+copa <- copa %>%
+  mutate(
+    fecha = as.Date(fecha, origin = "1899-12-30"),
+    formatted_date = format(fecha, "%d-%m-%y")
+  )
+```
+
+### Extraer componentes de fecha
+
+```{r}
+copa <- copa %>%
+  mutate(
+    año = year(fecha),      # extraer año
+    mes = month(fecha),     # extraer mes (número)
+    mes_nombre = month(fecha, label = TRUE),  # mes como nombre
+    dia = day(fecha),       # extraer día
+    dia_semana = wday(fecha, label = TRUE)    # día de la semana
+  )
+```
+
+------------------------------------------------------------------------
+
+## 🔗 5. Joins (Uniones)
+
+> **¿Cuándo usarlo?** Cuando necesitas combinar datos de dos tablas diferentes basándote en una columna común. Útil para enriquecer datos o crear datasets combinados.
+
+### Tipos de joins
+
+| Tipo           | Descripción                                    |
+|----------------|------------------------------------------------|
+| `left_join()`  | Mantiene todos los datos de la tabla izquierda |
+| `right_join()` | Mantiene todos los datos de la tabla derecha   |
+| `inner_join()` | Solo mantiene los datos que coinciden en ambas |
+| `full_join()`  | Mantiene todos los datos de ambas tablas       |
+
+### Ejemplos
+
+```{r}
+# Left join (columnas con nombres diferentes)
+copa <- copa %>% left_join(jugadoras, by = c("jugadora_destacada" = "JUGADORA"))
+
+# Left join (misma columna)
+bd_datos <- bd_datos %>% left_join(bd_barrios, by = "CEDULA")
+
+# Inner join
+datos_comunes <- tabla1 %>% inner_join(tabla2, by = "id")
+```
+
+------------------------------------------------------------------------
+
+## 📈 6. Visualización
+
+> **¿Cuándo usarlo?** Para representar gráficamente tus datos y comunicar resultados de manera efectiva. Los gráficos permiten identificar patrones, tendencias y outliers.
+
+### Gráfico de barras (suma)
+
+```{r}
+copa %>%
+  group_by(equipo) %>%
+  summarise(Suma = sum(pases_realizados)) %>%
+  ggplot(aes(x = equipo, y = Suma, fill = equipo, label = Suma)) +
+  geom_col() +
+  geom_text(vjust = 0.5, hjust = -0.1, size = 3, position = position_dodge(width = 1)) +
+  labs(
+    x = "Cantidad de pases",
+    y = "Equipo",
+    title = str_wrap("Suma de pases realizados por equipo", width = 30),
+    caption = "...."
+  ) +
+  theme(plot.title = element_text(size = 15, face = "bold", color = "#525252", hjust = 0.5)) +
+  theme(legend.position = "none") +
+  theme(axis.text.y = element_text(size = 8)) +
+  theme(axis.text.x = element_text(size = 10)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 20)) +
+  scale_fill_manual(values = c("#2171b5", "#4292c6", "#74a9cf", "#41b6c4", "#7fcdbb", "#238b45", "#78c679", "#c7e9b4", "#edf8b1", "#fee391", "#fec44f", "#fe9929", "#ec7014"))
+```
+
+### Gráfico de columnas (media)
+
+```{r}
+test_pases_copa %>%
+  ggplot(aes(x = equipo, y = media_pases, fill = equipo)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = media_pases), vjust = -0.5, size = 3) +
+  labs(
+    title = "Media de pases por equipo",
+    x = "Equipo",
+    y = "Media de pases"
+  ) +
+  scale_fill_brewer(palette = "Blues") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+### Boxplot (diagrama de caja)
+
+```{r}
+copa %>%
+  ggplot(aes(x = equipo, y = pases_realizados, fill = equipo)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Distribución de pases por equipo",
+    x = "Equipo",
+    y = "Pases realizados"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Histograma
+
+```{r}
+copa %>%
+  ggplot(aes(x = edad)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribución de edades",
+    x = "Edad",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+## 📝 7. Tablas con flextable
+
+> **¿Cuándo usarlo?** Para crear tablas profesionales y bien formateadas para informes o presentaciones. Flextable permite personalización completa de estilo.
+
+```{r}
+agua %>% 
+  count(barrio) %>% 
+  arrange(desc(n)) %>% 
+  rename(el_barrio = barrio, "Cantidad por barrio" = n) %>%
+  flextable() %>%
+  set_caption("Resumen de cantidad de registros por barrio") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+------------------------------------------------------------------------
+
+## 🛠️ 8. Funciones Útiles
+
+> **¿Cuándo usarlo?** Funciones auxiliares que se utilizan frecuentemente en combinación con otras operaciones para cálculos rápidos o manejo de casos especiales.
+
+| Función                             | Descripción                 |
+|-------------------------------------|-----------------------------|
+| `is.na(x)`                          | Detectar valores nulos      |
+| `sum(ifelse(condición, 1, 0))`      | Contar con condición lógica |
+| `round(sum(condición) * 100 / n())` | Porcentaje con condición    |
+| `mean(condición)`                   | Alternativa para porcentaje |
+| `n()`                               | Contar filas en summarise   |
+| `n_distinct(x)`                     | Contar valores únicos       |
+| `coalesce(x, y)`                    | Tomar primer valor no nulo  |
+| `replace_na(x, 0)`                  | Reemplazar NA por un valor  |
+
+------------------------------------------------------------------------
+
+## 🔤 9. Funciones de Texto (stringr)
+
+> **¿Cuándo usarlo?** Para limpiar y transformar texto en tus datos. Esencial para estandarizar nombres, códigos o cualquier variable de texto.
+
+### Mayúsculas y minúsculas
+
+```{r}
+# Convertir a mayúsculas
+agua <- agua %>% mutate(equipo_may = str_to_upper(equipo))
+
+# Convertir a minúsculas
+agua <- agua %>% mutate(equipo_min = str_to_lower(equipo))
+
+# Primera letra en mayúscula
+agua <- agua %>% mutate(equipo_title = str_to_title(equipo))
+```
+
+### Recortar y limpiar espacios
+
+```{r}
+# Eliminar espacios al inicio y final
+agua <- agua %>% mutate(equipo_limpio = str_trim(equipo))
+
+# Eliminar espacios extras entre palabras
+agua <- agua %>% mutate(equipo_limpio = str_squish(equipo))
+```
+
+### Extraer parte de texto
+
+```{r}
+# Primeros 3 caracteres
+agua <- agua %>% mutate(codigo = str_sub(codigo_completo, 1, 3))
+
+# Últimos 3 caracteres
+agua <- agua %>% mutate(codigo = str_sub(codigo_completo, -3, -1))
+```
+
+### Reemplazar texto
+
+```{r}
+# Reemplazar una palabra
+agua <- agua %>% mutate(texto = str_replace(texto, "viejo", "nuevo"))
+
+# Reemplazar todas las ocurrencias
+agua <- agua %>% mutate(texto = str_replace_all(texto, "a", "x"))
+```
+
+------------------------------------------------------------------------
+
+## 📅 10. Funciones de Fecha (lubridate)
+
+> **¿Cuándo usarlo?** Para trabajar con fechas y realizar cálculos temporales (diferencias entre fechas, extraer componentes, convertir formatos).
+
+```{r}
+library(lubridate)
+
+# Crear fecha desde texto
+fecha <- ymd("2024-01-15")
+fecha <- dmy("15/01/2024")
+
+# Operaciones con fechas
+fecha + days(1)      # sumar días
+fecha + months(1)    # sumar meses
+fecha + years(1)     # sumar años
+
+# Diferencia entre fechas
+diferencia <- fecha2 - fecha1  # resultado en días
+```
+
+------------------------------------------------------------------------
+
+## 🧹 11. Limpieza de Datos
+
+> **¿Cuándo usarlo?** Para preparar datos antes del análisis. Eliminar valores nulos, renombrar columnas o estandarizar nombres son pasos esenciales en cualquier proyecto.
+
+### Eliminar filas con NA
+
+```{r}
+# Eliminar filas con cualquier NA
+datos_limpios <- datos %>% drop_na()
+
+# Eliminar filas con NA en columnas específicas
+datos_limpios <- datos %>% drop_na(edad, salario)
+```
+
+### Rellenar valores NA
+
+```{r}
+# Rellenar con un valor específico
+datos <- datos %>% replace_na(list(edad = 0, salario = 0))
+
+# Rellenar con el valor anterior (fill)
+datos <- datos %>% fill(edad, .direction = "down")
+```
+
+### Renombrar columnas
+
+```{r}
+# Renombrar una columna
+datos <- datos %>% rename(nueva_fecha = fecha_antigua)
+
+# Renombrar varias
+datos <- datos %>% rename(
+  nombre = nombre_old,
+  edad = edad_old,
+  ciudad = ciudad_old
+)
+```
+
+------------------------------------------------------------------------
+
+## 📦 12. Configuración Inicial
+
+> **¿Cuándo usarlo?** Al iniciar un nuevo script o documento R Markdown. Esta configuración inicial prepara el entorno de trabajo.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
+# Limpiar variables
+rm(list = ls())
+
+library(openxlsx)
+library(tidyverse)
+library(lubridate)
+library(flextable)
+
+# Cargar datos
+# bd1 <- read.xlsx("ruta+archivo", sheet = "COPA AMERICA")
+# bd2 <- read.xlsx("url", sheet = "hoja")
+```
+
+------------------------------------------------------------------------
+
+## 💡 Ideas para Trabajos Futuros
+
+> **¿Cuándo usarlo?** Como lista de pendientes o ideas para continuar desarrollando el análisis. Puedes marcar las tareas completadas con [x].
+
+-   [ ] Sacar clase de uso que más contribuye al fondo
+-   [ ] Sacar clase de uso que más se subsidia
+
+------------------------------------------------------------------------
+
+## 📌 Notas
+
+> **¿Cuándo usarlo?** Como recordatorio rápido de conceptos importantes y atajos útiles en R.
+
+-   Para llamar una celda específica de un dataframe: `` `r df[1,2]` ``
+-   `na.rm = TRUE` elimina valores nulos en cálculos
+-   `.after` y `.before` posicionan columnas nuevas
+-   El operador `%>%` (pipe) encadena funciones de izquierda a derecha
+-   `%in%` verifica si un valor está en un vector
+-   `str_wrap()` ajusta texto largo en gráficos
