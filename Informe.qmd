@@ -20,7 +20,9 @@ library(ggiraph)
 #| warning: false
 rm(list = ls()) # Limpieza del entorno de trabajo
 
-datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
+# datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
+datos <- read.xlsx ("C:\\Users\\Brian.Ruiz\\OneDrive - Universidad Tecnológica de Pereira\\1. UTP\\2. Introducción a la Ciencia de Datos\\2026-03-Trabajo Fina\\DATA\\Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx")
+
 
 datos <- datos %>% clean_names() # Limpieza de nombres de columnas
 datos <- datos %>% select (-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo )
@@ -62,7 +64,177 @@ girafe(ggobj = p)
 
 
 
+```{r}
+#| warning: false
+#| message: false
+
+# --- ANÁLISIS DE LA VARIABLE DEPARTAMENTO ---
+
+# 1. Crear la tabla de frecuencia (Top 10)
+tabla_dept <- datos %>%
+  count(departamento, name = "cantidad") %>%
+  arrange(desc(cantidad)) %>%
+  slice_head(n = 10)
+
+# 2. Guardar variables para el texto automatizado
+top_dept <- tabla_dept$departamento[1]
+num_dept <- comma(tabla_dept$cantidad[1], big.mark = ".", decimal.mark = ",")
+
+# 3. Crear la gráfica de barras interactiva
+p_dept <- tabla_dept %>%
+  ggplot(aes(x = reorder(departamento, cantidad), y = cantidad, fill = departamento)) +
+  geom_col_interactive(aes(tooltip = paste0(departamento, ": ", comma(cantidad, big.mark = ".", decimal.mark = ",")), data_id = departamento), 
+                       show.legend = FALSE) + # Ocultamos leyenda porque los nombres ya están en el eje
+  coord_flip() + # Giramos la gráfica para leer mejor los nombres
+  scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
+  labs(
+    title = "Top 10 Departamentos con mayor número de registros agrícolas",
+    x = "Departamento",
+    y = "Cantidad de Registros"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_dept)
+```
+
+
+De acuerdo con la tabla de frecuencias y la gráfica anterior, el departamento que cuenta con la mayor cantidad de registros en las evaluaciones agropecuarias es `r top_dept`, acumulando un total de `r num_dept` registros.
+
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- ANÁLISIS DE LA VARIABLE GRUPO DE CULTIVO ---
+
+# 1. Crear la tabla de frecuencia
+tabla_grupo <- datos %>%
+  count(grupo_de_cultivo, name = "cantidad") %>%
+  arrange(desc(cantidad))
+
+# 2. Guardar variables para el texto automatizado
+top_grupo <- tabla_grupo$grupo_de_cultivo[1]
+num_grupo <- comma(tabla_grupo$cantidad[1], big.mark = ".", decimal.mark = ",")
+
+# 3. Crear la gráfica de columnas interactiva
+p_grupo <- tabla_grupo %>%
+  ggplot(aes(x = reorder(grupo_de_cultivo, -cantidad), y = cantidad, fill = grupo_de_cultivo)) +
+  geom_col_interactive(aes(tooltip = paste0(grupo_de_cultivo, ": ", comma(cantidad, big.mark = ".", decimal.mark = ",")), data_id = grupo_de_cultivo)) +
+  scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
+  labs(
+    title = "Cantidad de registros por Grupo de Cultivo",
+    x = "Grupo de Cultivo",
+    y = "Cantidad de Registros",
+    fill = "Categoría"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(), # Ocultamos el texto del eje X porque ya está en la leyenda
+    axis.ticks.x = element_blank()
+  )
+
+girafe(ggobj = p_grupo)
+```
+
+
+En el análisis por categorías, se evidencia que el grupo predominante es `r top_grupo`, representando la mayor parte de la base de datos con `r num_grupo` observaciones registradas.
 
 
 
 
+```{r}
+#| warning: false
+#| message: false
+
+# --- TABLA CRUZADA 1: Top 5 Departamentos vs Top 4 Grupos de Cultivo ---
+
+# 1. Identificar los Top para filtrar y no saturar la gráfica
+top5_dept <- datos %>% count(departamento) %>% top_n(5, n) %>% pull(departamento)
+top4_grupos <- datos %>% count(grupo_de_cultivo) %>% top_n(4, n) %>% pull(grupo_de_cultivo)
+
+# 2. Filtrar los datos y crear la tabla pivotante (como pide la rúbrica)
+tabla_contingencia_1 <- datos %>%
+  filter(departamento %in% top5_dept, grupo_de_cultivo %in% top4_grupos) %>%
+  count(departamento, grupo_de_cultivo) %>%
+  pivot_wider(names_from = grupo_de_cultivo, values_from = n, values_fill = 0)
+
+# Imprimir la tabla para que se vea en el informe (opcional, puedes usar datatable)
+datatable(tabla_contingencia_1, options = list(pageLength = 5))
+
+# 3. Preparar variables para el texto automatizado
+# Extraemos el valor de la primera fila y segunda columna (ej. registros del grupo 1 en el dept 1)
+dept_ejemplo <- tabla_contingencia_1$departamento[1]
+grupo_ejemplo <- colnames(tabla_contingencia_1)[2]
+valor_ejemplo <- comma(tabla_contingencia_1[[2]][1], big.mark = ".", decimal.mark = ",")
+
+# 4. Gráfica de barras apiladas
+p_cont_1 <- datos %>%
+  filter(departamento %in% top5_dept, grupo_de_cultivo %in% top4_grupos) %>%
+  count(departamento, grupo_de_cultivo) %>%
+  ggplot(aes(x = departamento, y = n, fill = grupo_de_cultivo)) +
+  geom_col_interactive(
+    aes(tooltip = paste0("Grupo: ", grupo_de_cultivo, "\nRegistros: ", comma(n, big.mark = ".", decimal.mark = ",")), 
+        data_id = grupo_de_cultivo), 
+    position = "stack" # Apiladas
+  ) +
+  scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
+  labs(
+    title = "Composición de Grupos de Cultivo en los 5 principales Departamentos",
+    x = "Departamento",
+    y = "Cantidad de Registros",
+    fill = "Grupo de Cultivo"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_cont_1)
+```
+
+
+Al analizar de forma cruzada los principales departamentos y grupos de cultivo, podemos observar la composición interna de cada región. Por ejemplo, en el departamento de `r dept_ejemplo`, se reportaron `r valor_ejemplo` registros específicos para la categoría de `r grupo_ejemplo`.
+
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# --- TABLA CRUZADA 2: Top 5 Departamentos vs Top 3 Cultivos Específicos ---
+
+# 1. Crear la tabla pivotante
+tabla_contingencia_2 <- datos %>%
+  filter(departamento %in% top5_dept, cultivo %in% nombres_top3) %>%
+  count(departamento, cultivo) %>%
+  pivot_wider(names_from = cultivo, values_from = n, values_fill = 0)
+
+datatable(tabla_contingencia_2, options = list(pageLength = 5))
+
+# 2. Variables para el texto automatizado
+# Buscamos cuántos registros tiene el cultivo #1 en el departamento #1
+cultivo_ejemplo <- colnames(tabla_contingencia_2)[2]
+valor_cultivo_ejemplo <- comma(tabla_contingencia_2[[2]][1], big.mark = ".", decimal.mark = ",")
+
+# 3. Gráfica de barras agrupadas
+p_cont_2 <- datos %>%
+  filter(departamento %in% top5_dept, cultivo %in% nombres_top3) %>%
+  count(departamento, cultivo) %>%
+  ggplot(aes(x = departamento, y = n, fill = cultivo)) +
+  geom_col_interactive(
+    aes(tooltip = paste0("Cultivo: ", cultivo, "\nRegistros: ", comma(n, big.mark = ".", decimal.mark = ",")), 
+        data_id = cultivo), 
+    position = "dodge" # Agrupadas (una al lado de la otra)
+  ) +
+  scale_y_continuous(labels = label_comma(big.mark = ".", decimal.mark = ",")) +
+  labs(
+    title = "Frecuencia de los 3 Cultivos Principales por Departamento",
+    x = "Departamento",
+    y = "Cantidad de Registros",
+    fill = "Cultivo"
+  ) +
+  theme_minimal()
+
+girafe(ggobj = p_cont_2)
+```
+
+
+En cuanto a los cultivos más representativos a nivel nacional, su distribución geográfica varía considerablemente. A modo de ejemplo, el cultivo de `r cultivo_ejemplo` cuenta con `r valor_cultivo_ejemplo` evaluaciones agropecuarias en el departamento de `r dept_ejemplo`.

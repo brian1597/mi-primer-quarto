@@ -1,0 +1,445 @@
+---
+title: "DATOS COPA AMERICA"
+subtitle: "Femenina 2022"
+date: "`r Sys.Date()`"
+author: "Brian Ruiz"
+output:
+  html_document: 
+    fig_height: 7
+    fig_width: 10
+    highlight: tango
+    keep_md: yes
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 4
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  word_document:
+    toc: yes
+    toc_depth: '4'
+editor_options:
+  
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+# Limpiar variables
+rm(list = ls())
+library(openxlsx)
+library(tidyverse)
+library(janitor)
+library(flextable)
+library(formattable)
+
+copa <- read.xlsx("BD\\1. COPA AMERICA FEMENINA 2022.xlsx",sheet ="COPA AMERICA")
+
+jugadoras <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vSqW7b6PHohcphLcbpgxSBSRyKTb82_l9BgpbHJmy9h_5VSp3N-UH3k0ZO86PotXA/pub?output=xlsx&authuser=1")
+
+```
+
+```{r}
+# Limpia el nombre de las variables
+copa  <- copa %>% clean_names()
+```
+
+```{r}
+# validar repetidos por columnas
+copa %>% get_dupes() %>% 
+  write.xlsx("duplicados_partidos.xlsx")
+```
+
+```{r}
+# Eliminar duplicados
+
+# por algunas variables
+copa <- copa %>%distinct(equipo, partido, .keep_all = TRUE)
+
+# por todas las variables
+# copa <- copa %>%distinct()
+```
+
+```{r}
+# Renombrar variables
+copa <- copa %>% rename(pases_realizados= pases) 
+```
+
+```{r}
+# Eliminar variable
+copa %>%  select (-cat_goles_contra)
+
+# Seleccionar variable en especifico
+copa %>%  select (fecha, equipo, goles_favor, goles_contra)
+```
+
+```{r}
+copa <- copa %>% 
+        select (- cat_goles_contra) %>%
+        mutate(categoria_goles_contra = ifelse(goles_contra==0, "invicto", "recibio goles"
+          )
+        )
+```
+
+```{r}
+copa <- copa %>% 
+  mutate(resultado = ifelse(goles_favor > goles_contra, 
+                            "Gano", "Empato-Perdio")) %>% 
+  mutate(dominio = ifelse(resultado == "Gano" & pases_realizados > 300, 
+                          "Dominopartido", "No tuvo dominio"))
+```
+
+
+## Analisis descriptivo
+
+### Partidos por pais
+
+```{r}
+copa %>%  count(equipo)
+```
+
+
+```{r}
+copa %>% 
+  # contar variable
+  count(equipo) %>% 
+  # ordenar variable descendentemente
+  arrange(desc(n)) %>% 
+  # renombrar variables
+  rename(Equipo = equipo, "Cantidad de partidos" = n) %>% 
+    flextable() %>% 
+      # titulo tabla
+      set_caption("Cantidad de partidos por equipo") %>% 
+      # asignar ancho a columna
+      autofit() %>% 
+      # Tema personalizado
+      theme_vanilla()
+```
+
+#### Partidos de Colombia
+
+```{r}
+# filtrar
+copa %>% 
+  filter(equipo == "COLOMBIA")  %>% 
+    flextable() %>% autofit() %>% theme_vanilla() %>% 
+      set_caption("Partidos de Colombia")
+```
+
+#### Pases realizados
+```{r}
+copa %>%
+  # agrupar
+  group_by(Equipo = equipo)  %>% 
+  summarise(Pases = sum(pases_realizados),
+            Promedio = mean(pases_realizados)   )  %>% 
+    flextable() %>% autofit() %>% theme_vanilla() %>% 
+      set_caption("Cantidad de pases realizados y promedio")
+```
+
+### Grafico
+
+#### Numero de pases por equipo
+```{r}
+copa %>%
+  # agrupar
+  group_by( equipo ) %>%
+  summarise( Suma = sum(pases_realizados) )  %>% 
+    # Identificamos los ejes de la variable, no importa si vas a hacer
+    # un gráfico de barras o de columnas, porque al final lo puedes girar.
+    ggplot(aes(x = equipo, y = Suma, fill = equipo, label = Suma )) +
+      geom_col() +
+#######################################################################################
+ geom_text(vjust = 0.5, hjust = -0.1, size = 3,position = position_dodge(width = 1))+
+    # Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.
+    # pues con ella se hace que el eje sea un 10% más grande que el valor máximo.
+    # scale_y_continuous(limits = c(0, max(copa$n) * 1.1)) +
+    labs(x = "Cantidad de pases", y = "Equipo",
+         title = str_wrap("Suma de pases realizados por equipo ",width = 30),
+         caption="....")+
+    theme(plot.title = element_text(size=15, face='bold', color="#525252", hjust=0.5))+
+    # Con esto se evita el cuadro de la leyenda.
+    theme(legend.position="none")+
+    # Tamaño del texto de los ejes.
+    theme(axis.text.y = element_text(size = 8))+
+    theme(axis.text.x = element_text(size = 10))+
+    # Hace que se ajuste el largo de los textos del eje X,
+    # para que no se superpongan.
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+
+    # Una paleta de colores recomendad, pero puedes cambiarla.
+    scale_fill_manual(values = c("#2171b5",
+                                 "#4292c6","#74a9cf",
+                                 "#41b6c4","#7fcdbb","#238b45",#"#41ab5d",
+                                 "#78c679","#c7e9b4","#edf8b1","#fee391","#fec44f",
+                                 "#fe9929","#ec7014")) 
+    # Con el coord_flip() se puede girar las barras a horizontal.
+    # coord_flip()
+```
+
+```{r}
+copa %>% count(equipo, dominio) %>% 
+    pivot_wider(names_from = dominio, values_from = n) %>% 
+    flextable()
+```
+
+
+```{r}
+  copa <- copa %>% mutate(region = case_when(
+                equipo %in% c( "ARGENTINA","CHILE","URUGUAY","PARAGUAY" ) ~ "SUR",
+                equipo %in% c( "BOLIVIA", "PERU", "COLOMBIA", "VENEZUELA", "ECUADOR") ~ "ANDINA",
+        TRUE ~ "BRAZIL"     )
+                  ) 
+```
+     
+```{r}
+jugadoras <- jugadoras %>% distinct(JUGADORA, .keep_all =  TRUE)
+
+copa <- copa %>% 
+  left_join(jugadoras, 
+            by = c("jugadora_destacada" ="JUGADORA"))
+
+```
+
+     
+```{r}
+# convertir fecha
+jugadoras <- jugadoras %>% distinct(JUGADORA, .keep_all =  TRUE)
+
+copa <- copa %>% 
+  left_join(jugadoras, 
+            by = c("jugadora_destacada" ="JUGADORA"))
+
+```
+
+
+  
+```{r}
+
+# Date format
+copa <- copa %>%
+  mutate(
+    fecha = as.Date(fecha, origin = "1899-12-30"),
+    formatted_date = format(fecha, "%d-%m-%y")
+  )
+
+  
+```
+
+```{r}
+# Variable:  pases
+test_pases_copa <- copa %>% 
+  filter(toupper(equipo) %in% c("COLOMBIA", "BRASIL", "ARGENTINA") )%>%
+    group_by (equipo) %>%
+     summarise (
+      partidos =  n(),
+      suma_pases = sum(pases_realizados),
+      media_pases = round(mean(pases_realizados),2),
+      desviacion_estandar = sd(pases_realizados),
+      la_mediana = median(pases_realizados, na.rm = TRUE)
+      ) %>%
+      arrange(desc(media_pases) )
+```
+
+
+```{r}
+test_pases_copa %>%
+    ggplot(aes(x = equipo, y = media_pases, fill = equipo, label = media_pases )) +
+      geom_col() +
+#######################################################################################
+ geom_text(vjust = 0.5, hjust = -0.1, size = 3,position = position_dodge(width = 1))+
+    # Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.
+    # pues con ella se hace que el eje sea un 10% más grande que el valor máximo.
+    # scale_y_continuous(limits = c(0, max(copa$n) * 1.1)) +
+    labs(x = "Media de pases", y = "Equipo",
+         title = str_wrap("Media de pases por equipo ",width = 30),
+         caption="....")+
+    theme(plot.title = element_text(size=15, face='bold', color="#525252", hjust=0.5))+
+    # Con esto se evita el cuadro de la leyenda.
+    theme(legend.position="none")+
+    # Tamaño del texto de los ejes.
+    theme(axis.text.y = element_text(size = 8))+
+    theme(axis.text.x = element_text(size = 10))+
+    # Hace que se ajuste el largo de los textos del eje X,
+    # para que no se superpongan.
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+
+    # Una paleta de colores recomendad, pero puedes cambiarla.
+    scale_fill_manual(values = c("#2171b5",
+                                 "#4292c6","#74a9cf",
+                                 "#41b6c4","#7fcdbb","#238b45",#"#41ab5d",
+                                 "#78c679","#c7e9b4","#edf8b1","#fee391","#fec44f",
+                                 "#fe9929","#ec7014")) 
+    # Con el coord_flip() se puede girar las barras a horizontal.
+    # coord_flip()
+```
+
+
+```{r}
+test_pases_copa %>%
+  ggplot(aes(x = equipo, y = media_pases, fill = equipo)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = media_pases), vjust = -0.5, size = 3) +
+  labs(
+    title = "Media de pases por equipo",
+    x = "Equipo",
+    y = "Media de pases"
+  ) +
+  scale_fill_brewer(palette = "Blues") + # Paleta automática y profesional
+  theme_minimal() + # Tema limpio por defecto
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+En la copa América 2022, el país con mayor promedio de pases entre COLOMBIA, BRASIL Y ARGENTINA fue `r test_pases_copa [1,1]` con un valor de `r  test_pases_copa [1,4]` 
+
+
+```{r}
+test_porcentaje_pases <- copa %>% 
+  group_by(equipo) %>%   # Agrupamos por equipo para el análisis
+  summarise(Suma = sum(pases_realizados)) %>%    # Calculamos la suma total de pases por cada equipo
+  mutate(Porcentaje = Suma / sum(Suma)  ) %>%    # Creamos la columna de porcentaje (en formato decimal inicialmente)
+  mutate(Porcentaje = percent(Porcentaje)) %>%   # Convertimos el decimal a formato de porcentaje (ej: 0.15 -> 15%)
+  adorn_totals()   # Añadimos una fila de "Total" al final de la tabla (función del paquete janitor)
+```
+
+```{r}
+  test_porcentaje_pases %>% 
+  flextable()  # Generamos la tabla con formato profesional para el documento 
+```
+
+ 
+```{r}
+  test_porcentaje_pases %>% 
+  filter(toupper(equipo) != "TOTAL")  %>% 
+  
+  # ggplot define el lienzo: x es la categoría, y el valor numérico, 
+  # y fill asigna un color distinto a cada equipo.
+  ggplot(aes(x = equipo, y = Porcentaje, fill = equipo)) +
+
+  # geom_col dibuja las columnas. 
+  # show.legend = FALSE elimina la caja de colores lateral para ahorrar espacio.
+  geom_col(show.legend = FALSE) +
+  
+  # geom_text agrega las etiquetas numéricas sobre las barras.
+  # vjust = -0.5 mueve el texto ligeramente hacia arriba para que no toque la barra.
+  geom_text(aes(label = paste (Porcentaje, "\n", Suma ) ), vjust = -0.5, size = 3) +
+  labs(   # labs centraliza todos los títulos y etiquetas de los ejes.
+    title = "Media de pases por equipo",
+    x = "Equipo",
+    y = "Porcentaje"
+  ) +
+  scale_fill_brewer(palette =  "Paired") +   # scale_fill_brewer aplica una paleta de colores predefinida (secuencia de azules).
+  theme_minimal() +  # theme_minimal elimina el fondo gris y las líneas pesadas, dando un aspecto moderno y limpio.
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))  # theme permite ajustes finos. Aquí ponemos el título en negrita y lo centramos.
+```
+
+ 
+```{r}
+# Usamos el objeto 'copa' (minúsculas) que ya fue procesado con clean_names()
+copa %>% 
+  # Agrupamos por equipo y su región correspondiente
+  group_by(equipo, region) %>%
+  
+  # Calculamos la suma total de pases. .groups = "drop" evita mensajes de advertencia en la consola
+  summarise(suma = sum(pases_realizados), .groups = "drop") %>%
+  
+  # Calculamos el porcentaje global dividiendo cada suma entre el total absoluto de la columna
+  mutate(porcentaje = percent(suma/sum(suma))) %>%
+  
+  # Iniciamos ggplot: 
+  # label construye una cadena de texto con el % y el valor numérico ( \n crea un salto de línea)
+  ggplot(aes(x = equipo, y = suma, fill = region, label = paste(porcentaje, "\n", suma))) +
+  
+  # geom_col() crea las barras. Al usar coord_flip() más abajo, se verán horizontales
+  geom_col() +
+
+  # Agregamos las etiquetas de texto al final de las barras
+  # position_dodge ayuda si tuvieras barras agrupadas, pero aquí ayuda al alineamiento general
+  geom_text(vjust = 0.5, hjust = -0.1, size = 3) +
+  
+  # Personalizamos títulos y etiquetas de los ejes
+  labs(
+    x = "Equipo", 
+    y = "Total de Pases",
+    title = str_wrap("Cantidad y porcentaje de pases por equipo", width = 30),
+    caption = "Fuente: Datos Copa América Femenina 2022"
+  ) +
+  
+  # Configuración estética del tema
+  theme_minimal() + # Usamos un tema base limpio antes de personalizarlo
+  theme(
+    plot.title = element_text(size = 15, face = 'bold', color = "#525252", hjust = 0.5),
+    legend.position = "bottom",       # Movemos la leyenda abajo para dar más aire a la gráfica
+    axis.text.y = element_text(size = 8),
+    axis.text.x = element_text(size = 10)
+  ) +
+  
+  # str_wrap en el eje X (que será el vertical) para evitar que nombres largos se amontonen
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 20)) +
+  
+  # Aplicamos colores manuales (puedes cambiarlos por scale_fill_brewer si prefieres paletas automáticas)
+  scale_fill_manual(values = c("#2171b5", "#4292c6", "#238b45", "#fe9929")) +
+  
+  # Giramos la gráfica para que los equipos aparezcan en el eje vertical (más fácil de leer)
+  coord_flip()
+```
+
+```{r}
+copa %>% 
+  # 1. PREPARACIÓN DE DATOS
+  group_by(region) %>% 
+  summarise(suma = sum(pases_realizados)) %>% 
+  
+  # 2. CÁLCULOS GEOMÉTRICOS (Para posicionar las "rebanadas")
+  mutate(
+    porcentaje = suma / sum(suma),             # Proporción de cada región
+    ymax = cumsum(porcentaje),                # Límite superior de cada rebanada (suma acumulada)
+    ymin = c(0, head(ymax, n = -1)),          # Límite inferior (empieza donde terminó la anterior)
+    labelpos = (ymax + ymin) / 2,             # Punto medio exacto para centrar el texto
+    labelname = paste(suma, "\n", percent(porcentaje, 0.1)) # Etiqueta con Salto de línea (\n)
+  ) %>% 
+  
+  # 3. CONSTRUCCIÓN DE LA GRÁFICA
+  # xmax/xmin definen el grosor de la dona. Si xmin fuera 0, sería un gráfico de torta.
+  ggplot(aes(ymax = ymax, ymin = ymin, xmax = 10, xmin = 1, fill = region)) +
+    geom_rect() + # Dibuja los segmentos como rectángulos antes de la transformación circular
+    
+    # Agregamos las etiquetas de texto
+    # x = -1.5 las aleja del centro para que queden bien posicionadas en el hueco o borde
+    geom_text(aes(x = -1.5, y = labelpos, label = labelname), 
+              size = 5, color = "black", fontface = "bold") +
+    
+    labs(title = str_wrap("Porcentaje de pases realizados por region", width = 30)) +
+    
+    # Colores personalizados (Hexadecimal)
+    scale_fill_manual(values = c("#26b2b2","#3f8a1c","#2541bd","#c09816")) +
+    
+    # EL TRUCO: Convierte el eje Y (rectángulos) en un círculo (polar)
+    coord_polar(theta = "y") +
+    
+    # xlim define el "zoom" y el tamaño del agujero central
+    xlim(c(20, -10)) + 
+    
+    # theme_void() elimina ejes, fondos y cuadrículas para que solo quede la dona
+    theme_void() + 
+    
+    # Ajustes estéticos finales del título y la leyenda
+    theme(
+      plot.title.position = "plot",
+      plot.title = element_text(hjust = 0.5, size = 18, face = 'bold', color = "#235e78")
+    ) +
+    
+    # Configuración de la leyenda (esconde el título de la leyenda y agranda el texto)
+    guides(fill = guide_legend(title = "", 
+                               label.position = "right",
+                               label.theme = element_text(size = 18)))
+```
+
+
+

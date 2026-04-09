@@ -1,0 +1,161 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+## UNIVERSIDAD TECNOLÓGICA DE PEREIRA
+
+**Introducción a la ciencia de datos.** **Primer semestre de 2026**
+**Profesor:** Julián Piedrahíta Monroy **Correo electrónico:**
+[japiedrahita\@utp.edu.co](mailto:japiedrahita@utp.edu.co){.email}
+**Cohorte 1Proyecto final**
+
+## Rúbrica
+
+### Objetivo
+
+Desarrollar código en lenguaje R para automatizar un informe estadístico
+descriptivo y con aplicación de conceptos básicos de inferencia
+estadística.
+
+### Indicadores de logro (Expectativas o lista de chequeo)
+
+-   Utilizar una plantilla para el desarrollo del código en lenguaje R
+-   Tabla de datos (Consolidar u obtener una tabla de datos)
+-   Registros: Con una cantidad considerable de acuerdo al proyecto de
+    análisis.
+-   Variables: Como mínimo debe tener 3 variables categóricas y 1
+    variable cuantitativa.
+-   Se recomienda también una variable temporal (💡 dejar ésta para
+    analizar al final. En cuanto a las variables categóricas, usted las
+    puede construir también con base en las numéricas).
+
+### ANÁLISIS
+
+⚠️ El código a debe ser desarrollado considerando que en cualquier
+momento la tabla de datos puede ser abastecida con más registros o que
+inclusive el código a futuro pueda ser conectado 🌐 directamente a una
+vista de datos y desplegado para su funcionamiento automático 💻.
+
+### Análisis descriptivo
+
+-   Análisis de frecuencia (conteo 🧮) de las principales variables
+    categóricas.
+-   Gráfica para cada tabla de frecuencia. 📝En caso de tener muchas
+    categorías, se puede filtrar para hacer una gráfica comprensible.
+-   Análisis de tablas de contingencia o pivotantes (tablas cruzadas -
+    Conteo o suma de 2 variables en simultáneo).
+-   Al menos hacer 2 tablas de contingencia.
+
+| SEXO B/ETNIA | AFRO | INDIGEN | BLANCO |
+|:-------------|-----:|--------:|-------:|
+| HOMBRE       |   56 |      45 |     90 |
+| MUJER        |   67 |      56 |     67 |
+
+\`\`\`r encuesta %\>% count(sexo_biologico, atipicos) %\>%
+pivot_wider(values_from = n, names_from = atipicos) \`\`\`
+
+Cross tables - pivot tables
+
+------------------------------------------------------------------------
+
+-   Gráfica para cada tabla de contingencia.
+-   Gráfica de columnas o barras con una de las variables categóricas en
+    la leyenda (colores).
+-   📽️1
+    <https://www.youtube.com/watch?v=x_OVYUAKIGw&list=PLLYzLUCz_Dt9NapvVvUJ0HjJuxsATt-2z&index=9&pp=iAQB>
+-   📽️2
+    <https://www.youtube.com/watch?v=b4qpsLA3W4w&list=PLLYzLUCz_Dt9NapvVvUJ0HjJuxsATt-2z&index=10&pp=gAQBiAQB>
+-   📽️3
+    <https://www.youtube.com/watch?v=mu7vW86Om5c&list=PLLYzLUCz_Dt9NapvVvUJ0HjJuxsATt-2z&index=11&pp=gAQBiAQB>
+-   Gráfica tipo matriz de correlación.
+-   sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software
+-   
+
+### Texto automatizado ✍️
+
+-   Para cada tabla de frecuencia, contingencia y gráficos, se debe
+    generar texto automatizado que exprese el resultado para al menos
+    una de las categorías.
+-   Ejemplo: En la anterior tabla o gráfica, se evidencia que el total
+    de aves registradas en la salida de campo fueron `r num_aves`.
+-   Incluir una gráfica de líneas o de puntos con su análisis de texto ✍
+    ️ automatizado.
+-   Esto podría estar relacionado con la variable temporal (fecha -
+    hora).
+-   📝En caso de no tener variable temporal o que permita hacer gráfico
+    de líneas, explorar otro tipo de gráfica no visto en clase que
+    considere útil.
+
+### Más allá de lo descriptivo
+
+-   Tabla de medidas resumen para una variable cuantitativa, agrupada
+    por otra categórica.
+-   📽️ Ejemplo. <https://www.youtube.com/watch?v=HF-CuxhPeW8>
+
+| sexo_biologico | Min | Q1 | Mediana | Q3 | Max | Media | IRQ | bigote1 | bigote2 | Desvest | Varianza | CV |
+|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+| Hombre | 156 | 170.00 | 173 | 178 | 230 | 174.0824 | 8.00 | 158.000 | 190.000 | 8.097354 | 65.56714 | 0.04651450 |
+| Mujer | 57 | 157.75 | 160 | 165 | 178 | 159.2308 | 7.25 | 146.875 | 175.875 | 15.264061 | 232.99156 | 0.09586125 |
+
+-   Texto automatizado para la tabla de medidas estadísticas. Al menos
+    expresando 2 valores de los obtenidos.
+
+### Distribución de los datos.
+
+-   📝 Este ítem no suele ser desarrollado en un informe, básicamente es
+    una manera de acercarnos en el conocimiento de la estadística para
+    el análisis de variables cuantitativas
+-   Desarrollar una tabla de frecuencia para una variable cuantitativa.
+-   📽️1 <https://www.youtube.com/watch?v=zn8rlA7Kiss&t=1s>
+-   📽️2 <https://www.youtube.com/watch?v=rRTfWOsCZwI>
+-   Gráficas de distribución de los datos
+-   Gráfica de distribución empírica
+-   Histograma
+-   Gráfico de densidad
+
+### Comprobación de normalidad
+
+-   Uso de al menos una de las pruebas de normalidad.
+-   💪 Explorar la forma de que éste resultado y su conclusión sea
+    automatizado.
+
+### Cálculo de intervalo de confianza
+
+-   Estimación del intervalo de confianza para la variable cuantitativa
+    en función de una categórica o estimación de intervalo para la
+    proporción .
+-   En total al menos dos intervalos de confianza. (Aunque la variable
+    no sea continua, aplicarlo para práctica).
+
+### Conclusiones finales
+
+-   Un párrafo corto que concluya el informe.
+
+### Vídeo:
+
+-   Desarrollar un vídeo que explique brevemente las gráficas y las
+    observaciones o conclusiones de cada una.
+-   (Duración 3 a 7 minutos).
+
+### Valores o calificación
+
+| Ítem                       | Puntaje                                    |
+|:---------------------------|:-------------------------------------------|
+| Vídeo                      | 0.5 (solo es necesario grabando pantalla). |
+| Análisis descriptivo       | 2.5                                        |
+| Gráficas e innovación      | 0.5                                        |
+| Tablero Shiny              | 1.5                                        |
+| Cálculos de normalidad     | 1.0                                        |
+| Más allá de lo descriptivo | 1.0 (Intervalos de confianza).             |
+
+-   📝 En cada ítem se ponderará la creatividad y aplicación coherente
+    del análisis.
+-   Evidentemente los valores suman mucho más que 5.0, usted puede jugar
+    con esos valores para alcanzar la nota máxima que es de 5.0
+
+### Archivos a entregar :
+
+-   Script .Rmd - Exportable en Html o word -
+-   Archivo .xlsx o conexión a través de hojas de cálculo de Google.

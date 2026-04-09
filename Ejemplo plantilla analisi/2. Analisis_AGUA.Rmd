@@ -1,0 +1,287 @@
+---
+title: "DATOS ACUEDUCTO"
+subtitle: "Por barrios ficticios"
+date: "`r Sys.Date()`"
+author: "Brian Ruiz"
+output:
+  html_document: 
+    fig_height: 7
+    fig_width: 10
+    highlight: tango
+    keep_md: yes
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 4
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  word_document:
+    toc: yes
+    toc_depth: '4'
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+editor_options:
+  
+  chunk_output_type: console
+---
+
+
+```{r }
+
+# Limpiar variables
+rm(list = ls())
+
+
+library(openxlsx)
+library(tidyverse)
+library(janitor)
+library(flextable)
+
+
+agua <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_Bd46Y2n5SptLCPyykcdGs9Tr7mfOoMFmQa7a5i3e9qzxPbxXDZRbp6eawBxQ-g/pub?output=xlsx")
+
+```
+
+
+```{r}
+# Limpia el nombre de las variables
+
+agua <- agua %>% clean_names()
+```
+
+```{r}
+# validar repetidos  
+agua %>% get_dupes(id_cuenta, mes) %>% 
+  write.xlsx("duplicados_matriculas.xlsx")
+```
+
+
+```{r}
+# Eliminar duplicados
+
+# por algunas variables
+agua <- agua %>%distinct(id_cuenta, mes, .keep_all = TRUE)
+
+# por todas las variables
+agua <- agua %>%distinct()
+
+```
+
+```{r}
+# Renombrar variables
+agua <- agua %>% rename(total_factura= total) 
+```
+
+```{r}
+# uso de ifelse
+agua <- agua %>%
+        #select () %>%
+        mutate(analisis_consumo = ifelse(consumo > 0, "Tiene consumo", "Sin consumo"),
+          .after = promedio
+        )
+```
+
+
+```{r}
+# Uso de case WHEN
+agua <- agua %>% 
+        #select () %>%
+       mutate( 
+         tipo_cartera = 
+          case_when (
+            cartera_ajustada < 0 ~ "SALDO A FAVOR",
+            cartera_ajustada ==0 ~ "NO DEBE NADA",
+            between(cartera_ajustada, 0, 1000)      ~ "DEBE POQUITO",
+            between(cartera_ajustada, 1000,10000)   ~ "DEUDA MEDIANA",
+            cartera_ajustada>10000 ~ "GRAN DEUDOR"
+              ),
+        .after = cartera_ajustada#Indicador de posición
+        )
+```
+
+
+```{r}
+# uso de ifelse
+agua <- agua %>%
+        #select () %>%
+        mutate(tendencia_consumo =
+          ifelse(consumo > promedio, "Aumento consumo", "Sin aumento"),
+          .after = promedio
+        )
+```
+
+```{r}
+# Uso de case WHEN - Corregido: lógica de tendencia basada en consumo
+agua <- agua %>%
+      mutate(
+       tendencia_tipo =
+        case_when (
+          consumo > promedio ~ "Consumo arriba del promedio",
+          consumo > 0 ~ "Consumo normal",
+          TRUE ~ "Sin consumo"
+            )
+        )
+```
+
+
+```{r}
+# reorganizar columnas
+agua <- agua  %>% 
+relocate(tipo_cartera, .after = cartera_ajustada)#Indicador de posición
+```
+
+
+
+
+## Analisis descriptivo
+
+### Predios por barrio y mes
+
+```{r}
+agua %>% 
+    # contar variable
+  count(barrio) %>% 
+  # ordenar variable ascendentemente
+  arrange() %>% 
+  # ordenar variable descendentemente
+  arrange(desc(n)) %>% 
+  # renombrar variables
+  rename(Barrio = barrio , "Cantidad por barrio" = n ) %>% 
+    # Crear tabla con los datos
+    flextable() %>% 
+      # titulo tabla
+      set_caption("Resumen de cantidad de registros por barrio") %>% 
+      # asignar ancho a columna
+      autofit() %>% 
+      #width(j = "el_barrio", width = 2.5) %>% 
+      #width(j = "Cantidad por barrio", width = 1.5) %>% 
+      # Tema personalizado
+      theme_vanilla()
+```
+
+#### Consumo enero por clase de uso
+
+```{r}
+# filtrar
+agua %>% 
+  filter(mes == 1)  %>% 
+  group_by(uso)  %>% 
+  summarise(Cantidad = n(),
+            Consumo_enero = sum(consumo),
+            Promedio_por_uso = round(mean(consumo))
+            ) %>% 
+      arrange(uso) %>% 
+    flextable() %>% autofit() %>% theme_vanilla() %>% 
+      set_caption("Consumo enero")
+```
+
+#### Consumo enero por barrio
+
+```{r}
+# filtrar
+agua %>% 
+  filter(mes == 1)  %>% 
+  group_by(barrio)  %>% 
+  summarise(Cantidad = n(),
+            Consumo_enero = sum(consumo),
+            Promedio_por_uso = round(mean(consumo))
+            ) %>% 
+      arrange(Promedio_por_uso) %>% 
+    flextable() %>% autofit() %>% theme_vanilla() %>% 
+      set_caption("Consumo enero por barrio")
+```
+
+
+### Grafico
+
+#### Promedio consumo por clase de uso
+```{r}
+agua %>%
+  # agrupar
+  group_by( uso ) %>%
+  summarise( Promedio = round(mean(consumo)) )  %>% 
+  arrange(Promedio) %>% 
+  # Filtrar top
+  # head(6) %>% 
+    # Identificamos los ejes de la variable, no importa si vas a hacer
+    # un gráfico de barras o de columnas, porque al final lo puedes girar.
+    ggplot(aes(x = uso, y = Promedio, fill = uso, label = Promedio )) +
+      geom_col() +
+#######################################################################################
+ geom_text(vjust = 0.5, hjust = -0.1, size = 3,position = position_dodge(width = 1))+
+    # Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.
+    # pues con ella se hace que el eje sea un 10% más grande que el valor máximo.
+    # scale_y_continuous(limits = c(0, max(copa$n) * 1.1)) +
+    labs(x = "Clase de uso", y = "Metros cúbicos",
+         title = str_wrap("Promedio de consumo por clase de uso ",width = 30),
+         caption="Analisis echo con datos de 12 meses")+
+    theme(plot.title = element_text(size=15, face='bold', color="#525252", hjust=0.5),
+          legend.position="none",
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 10))+
+    # Hace que se ajuste el largo de los textos del eje X,
+    # para que no se superpongan.
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+
+    # Una paleta de colores recomendad, pero puedes cambiarla.
+    scale_fill_manual(values = c("#2171b5",
+                                 "#4292c6","#74a9cf",
+                                 "#41b6c4","#7fcdbb","#238b45",#"#41ab5d",
+                                 "#78c679","#c7e9b4","#edf8b1","#fee391","#fec44f",
+                                 "#fe9929","#ec7014")) 
+    # Con el coord_flip() se puede girar las barras a horizontal.
+    # coord_flip()
+```
+
+
+```{r}
+agua %>%
+  filter(mes==12) %>%
+  count(uso, barrio, name = "n") %>%
+    pivot_wider(names_from = barrio, values_from = n) %>%
+    flextable() %>% autofit() %>% theme_vanilla() %>%
+      set_caption("Predios por barrio a diciembre")
+```
+
+
+#### Tipo de cartera
+```{r}
+agua %>%
+  # agrupar
+  # filter(cartera_ajustada >= 0)  %>% 
+  group_by( uso ) %>%
+  summarise( porcentaje = round(sum(ifelse(cartera_ajustada>0,1,0))*100/n()) )  %>% # mean(cartera_ajustada > 0)??
+  arrange(porcentaje) %>% 
+  # Filtrar top
+  # head(6) %>% 
+    # Identificamos los ejes de la variable, no importa si vas a hacer
+    # un gráfico de barras o de columnas, porque al final lo puedes girar.
+    ggplot(aes(x = uso, y = porcentaje, fill = uso, label = paste0(porcentaje, "%") )) +
+      geom_col() +
+ geom_text(vjust = 0.5, hjust = -0.1, size = 3,position = position_dodge(width = 1))+
+    # Esta línea ayudará a que las etiquetas de cada barra no se corten por el tamaño de la gráfica.
+    # pues con ella se hace que el eje sea un 10% más grande que el valor máximo.
+    # scale_y_continuous(limits = c(0, max(copa$n) * 1.1)) +
+    labs(x = "Clase de Uso", y = "% de Cuentas en Mora",
+         title = str_wrap("Porcentaje de Cuentas con Cartera por Clase de Uso ",width = 30),
+         caption="Analisis echo con datos de 12 meses")+
+    theme(plot.title = element_text(size=15, face='bold', color="#525252", hjust=0.5),
+          legend.position="none",
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 10))+
+    # Hace que se ajuste el largo de los textos del eje X,
+    # para que no se superpongan.
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 20))+
+    # Una paleta de colores recomendad, pero puedes cambiarla.
+    scale_fill_manual(values = c("#2171b5",
+                                 "#4292c6","#74a9cf",
+                                 "#41b6c4","#7fcdbb","#238b45",#"#41ab5d",
+                                 "#78c679","#c7e9b4","#edf8b1","#fee391","#fec44f",
+                                 "#fe9929","#ec7014")) 
+    # Con el coord_flip() se puede girar las barras a horizontal.
+    # coord_flip()
+```
+
+
+
