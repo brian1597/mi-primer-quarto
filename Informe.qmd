@@ -1,14 +1,29 @@
 ---
-title: "Gráficos Interactivos con GGIRAPH y PLOTLY"
+title: "Informe automatizado, trabajo final"
 author: "Brian Ruiz"
 format: html
 embed-resources: true
-css: styles.css
 ---
 
+# Índice
+
+1. **Datos** - Carga y limpieza de datos
+2. **Análisis Descriptivo - Frecuencias** - Análisis de frecuencia de variables categóricas
+3. **Análisis Descriptivo - Contingencia** - Tablas cruzadas (2 tablas)
+4. **Matriz de Correlación** - Correlación entre variables numéricas
+5. **Medidas Resumen** - Estadísticos agrupados por categoría
+6. **Distribución de Datos** - Histograma, densidad, ECDF
+7. **Normalidad** - Prueba de Shapiro-Wilk
+8. **Intervalos de Confianza** - Estimaciones IC 95%
+9. **Conclusiones** - Resumen del análisis
+
+---
+
+### Carga de librerias
 
 ```{r}
 #| warning: false
+
 library(tidyverse)
 library(tidyr)
 library(openxlsx)
@@ -21,39 +36,49 @@ library(ggcorrplot)
 library(flextable)
 ```
 
-
+###  1. **Datos** - Carga y limpieza de datos ()
 
 ```{r}
 #| warning: false
+#| 
 rm(list = ls())
-# datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
-# Usar archivo local
-datos <- read.xlsx("DATA/Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx") 
-```
 
-```{r}
+datos <- tryCatch(
+  read.xlsx("DATA/Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx"),
+  error = function(e) {
+    message("Archivo local no encontrado, intentando cargar desde URL...") # cargue alternativo
+    read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
+  }
+)
+
 # Eliminar duplicados
 
-# por todas las variables
+# para todas las variables
 datos <- datos %>% distinct() %>% 
   clean_names() %>% # normaliso nombres 
-  select(-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo) # quito variables feas
+  select(-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo) # quito variables que no sond e interes
+
 ```
 
 
+#### Tabla de variedades de Aguacate cultivadas por año
 ```{r}
-# Tabla de grupos de cultivo en filas
-# Años en columnas
-
 tabla_cultivo_aguacate_annio <- datos %>% 
   filter(str_detect(tolower(cultivo), "aguacate")) %>% 
   group_by(ano,desagregacion_cultivo) %>% 
-    summarise(produccion = sum(produccion)) %>% 
+    summarise(produccion = sum(produccion), .groups = "drop_last" ) %>% 
     filter(produccion>0) %>% 
     filter(ano>2019) %>% 
-  pivot_wider(
-    names_from = desagregacion_cultivo, # Los nombres de las columnas serán las variedades
-    values_from = produccion            # Los valores dentro de la tabla será la producción
+  arrange(desc(ano)) %>% # para sacar año mas reciente
+  {
+    Ultimo_periodo <<- .$ano[1]
+    Agua_cate_ult_periodo <<- comma(.$produccion[1], big.mark = ".", decimal.mark = ",")
+    .
+  } %>%
+
+  pivot_wider( #
+    names_from = desagregacion_cultivo, #  variedades de aguacates
+    values_from = produccion            # Suma produccion total
   ) 
 
  tabla_cultivo_aguacate_annio %>%    flextable() %>% 
@@ -65,24 +90,111 @@ tabla_cultivo_aguacate_annio <- datos %>%
       flextable::theme_vanilla()
 ```
 
+
+#### Grafica de produccion total de aguacate por año
 ```{r}
+
+tabla_cultivo_aguacate_annio %>%
+  # Agrupar por año y sumar todas las variedades (solo columnas numéricas)
+  group_by(ano) %>%
+  summarise(produccion_total = sum(across(where(is.numeric)), na.rm = TRUE)) %>% # se esperan datos numericos
+  # Convertimos el año a factor (texto) para que los colores funcionen bien
+  mutate(ano = as.factor(ano)) %>% 
+
+  # ggplot define el lienzo: x es la categoría (año), y el valor numérico, 
+  # y fill asigna un color distinto a cada año.
+  ggplot(aes(x = ano, y = produccion_total, fill = ano)) +
+
+  # geom_col dibuja las columnas. 
+  # show.legend = FALSE elimina la caja de colores lateral para ahorrar espacio.
+  geom_col(show.legend = FALSE) +
+  
+  # geom_text agrega las etiquetas numéricas sobre las barras.
+  # vjust = -0.5 mueve el texto ligeramente hacia arriba para que no toque la barra.
+  geom_text(aes(label = round(produccion_total, 1)), vjust = -0.5, size = 3) +
+  
+  labs(   # labs centraliza todos los títulos y etiquetas de los ejes.
+    title = "Producción Total de Aguacate por Año",
+    x = "Año",
+    y = "Producción Total (Toneladas)",
+    caption = "Elaboración propia para una tarea que hice en horario laboral"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  # scale_fill_brewer aplica una paleta de colores predefinida 
+  scale_fill_brewer(palette = "Blues") +   
+  
+  # theme_minimal elimina el fondo gris y las líneas pesadas
+  theme_minimal() + 
+  
+  # theme permite ajustes finos. Aquí ponemos el título en negrita y lo centramos.
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+
+```{r}
+tabla_cultivo_aguacate_annio %>% 
+  pivot_longer(
+    cols = -ano,              
+    names_to = "variedad",    # nombres columnas ahora serán una categoría
+    values_to = "produccion"  # números de toneladas 
+  ) %>% 
+  
+  # Convertimos el año a texto para el eje X
+  mutate(ano = as.factor(ano),
+         produccion = round(produccion/1000)) %>% 
+
+  # ggplot define el lienzo: 
+  # x = año, y = toneladas, fill = variedad (esto separa los colores dentro de la columna)
+  ggplot(aes(x = ano, y = produccion, fill = variedad)) +
+
+  # geom_col dibuja las columnas. 
+  # Al detectar el "fill", por defecto apila los colores uno sobre otro (gráfico apilado). 
+  geom_col() +
+  
+  # geom_text agrega las etiquetas numéricas. 
+  # position_stack(vjust = 0.5) coloca el número justo en el centro de cada bloque de color.
+  geom_text(aes(label = round(produccion, 1)), 
+            position = position_stack(vjust = 0.5), size = 3, color = "white") +
+  
+  labs(   
+    title = "Producción de Aguacate por Año y Variedad",
+    x = "Año",
+    y = "Producción (Miles de toneladas)",
+    fill = "Variedad", # Esto le pone título a la cajita de colores (leyenda)
+    caption = "Elaboración propia con datos de producción"
+  ) +
+  
+  # Ajusta la escala Y para quitar la notación científica (1e+06) y agregar separadores de miles
+  scale_y_continuous(labels = scales::comma) +
+  
+  # scale_fill_brewer aplica una paleta. "Set2" o "Paired" son excelentes para diferenciar 3 categorías.
+  scale_fill_brewer(palette = "Set2") +   
+  
+  # theme_minimal elimina el fondo gris y las líneas pesadas.
+  theme_minimal() +  
+  
+  # theme permite ajustes finos. Aquí ponemos el título en negrita y lo centramos.
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
 
 ```
 
 
+Los datos del año mas recientes muestran que la produccion de las diferentes variedades de aguacate para el año `r Ultimo_periodo` rondan las `r  Agua_cate_ult_periodo` toneladas.
 
 
+
+
+### Esto es un top 3 de los cultivos con mas producción a lo largo de los años
 ```{r}
-nombres_top3 <- datos %>% group_by(cultivo) %>% # para grafico dinamico de la Tarea :)
+nombres_top3 <- datos %>% group_by(cultivo) %>% # para grafico dinamico de la Tarea
   summarise(produccion_total = sum(produccion)) %>% 
-  arrange(desc(produccion_total)) %>% # Ordene la sumita
+  arrange(desc(produccion_total)) %>% # Ordene la suma
   slice_head(n = 3) %>% # y la filtre 
-  pull(cultivo) # Pero solo necesito los nombres :)
+  pull(cultivo) # Pero solo necesito los nombres 
 ```
 
-
 ```{r}
-# Grafico interactivo de la tarea
+# Gráfico
 grafico_prod <- datos %>% 
   filter(cultivo %in% nombres_top3) %>% 
   group_by(ano, cultivo) %>%
@@ -99,26 +211,23 @@ ggplot(grafico_prod, aes(x = ano, y = produccion_anual, color = cultivo)) +
   ) +
   theme_minimal()
 
-girafe(ggobj = last_plot())
+girafe(ggobj = last_plot()) # interactividad !Activate!
 ```
+Los 3 principales cultivos en colombia son: `r nombres_top3[1:2]` y `r nombres_top3[3]`.
 
-
-
+### Análisis de Frecuencia por Departamento
 ```{r}
 #| warning: false
 #| message: false
 
-# --- ANÁLISIS DE LA VARIABLE DEPARTAMENTO ---
-
-# Crear gráfica y extraer variables en un solo pipeline
-dept_info <- datos %>%
-  count(departamento, name = "cantidad") %>%
+grafica_por_departamentos <- datos %>%
+  count(departamento, name = "cantidad") %>% # cuanta de cantidad de registros para graficar
   arrange(desc(cantidad)) %>%
   slice_head(n = 10) %>%
   {
-    # Guardar variables para texto automatizado
-    top_dept <<- .$departamento[1]
-    num_dept <<- comma(.$cantidad[1], big.mark = ".", decimal.mark = ",")
+    # Guardar variables para texto automatizado: Esta logica se puede mejorar independizando la captura de variables y uzando vectores.
+    top_deptamento <<- .$departamento[1]
+    cantidad_por_deptamento <<- comma(.$cantidad[1], big.mark = ".", decimal.mark = ",")
     # Retornar para continuar con ggplot
     .
   } %>%
@@ -137,19 +246,19 @@ dept_info <- datos %>%
   ) +
   theme_minimal()
 
-girafe(ggobj = dept_info)
+girafe(ggobj = grafica_por_departamentos) #  interactividad
 ```
 
 
-De acuerdo con la tabla de frecuencias y la gráfica anterior, el departamento que cuenta con la mayor cantidad de registros en las evaluaciones agropecuarias es `r top_dept`, acumulando un total de `r num_dept` registros.
+De acuerdo con la tabla de frecuencias y la gráfica anterior, el departamento que cuenta con la mayor cantidad de registros en las evaluaciones agropecuarias es `r top_deptamento`, acumulando un total de `r cantidad_por_deptamento` registros.
 
 
+
+### Análisis Cantidad de registros por Grupo de Cultivo
 
 ```{r}
 #| warning: false
 #| message: false
-
-# --- ANÁLISIS DE LA VARIABLE GRUPO DE CULTIVO ---
 
 grupo_info <- datos %>%
   count(grupo_cultivo, name = "cantidad") %>%
@@ -184,15 +293,14 @@ girafe(ggobj = grupo_info)
 En el análisis por categorías, se evidencia que el grupo predominante es `r top_grupo`, representando la mayor parte de la base de datos con `r num_grupo` observaciones registradas.
 
 
-
+### Composición de Grupos de Cultivo en los 5 principales Departamentos
 
 ```{r}
 #| warning: false
 #| message: false
 
-# --- TABLA CRUZADA 1: Top 5 Departamentos vs Top 4 Grupos de Cultivo ---
-
-# Identificar top 5 departamentos y top 4 grupos
+# Tabla de Contingencia 1 - Deptos vs Grupos
+# Rúbrica: Tablas de contingencia (2) + Gráfica + Texto automatizado
 top5_dept <- datos %>% count(departamento) %>% top_n(5, n) %>% pull(departamento)
 top4_grupos <- datos %>% count(grupo_cultivo) %>% top_n(4, n) %>% pull(grupo_cultivo)
 
@@ -238,12 +346,10 @@ girafe(ggobj = last_plot())
 Al analizar de forma cruzada los principales departamentos y grupos de cultivo, podemos observar la composición interna de cada región. Por ejemplo, en el departamento de `r dept_ejemplo`, se reportaron `r valor_ejemplo` registros específicos para la categoría de `r grupo_ejemplo`.
 
 
-
+### Frecuencia de los 3 Cultivos Principales por Departamento
 ```{r}
 #| warning: false
 #| message: false
-
-# --- TABLA CRUZADA 2: Top 5 Departamentos vs Top 3 Cultivos Específicos ---
 
 tabla_contingencia_2 <- datos %>%
   filter(departamento %in% top5_dept, cultivo %in% nombres_top3) %>%
@@ -256,7 +362,10 @@ tabla_contingencia_2 <- datos %>%
   pivot_wider(names_from = cultivo, values_from = n, values_fill = 0)
 
 datatable(tabla_contingencia_2, options = list(pageLength = 5))
+```
 
+
+```{r}
 # Gráfico de barras agrupadas
 datos %>%
   filter(departamento %in% top5_dept, cultivo %in% nombres_top3) %>%
@@ -283,11 +392,11 @@ girafe(ggobj = last_plot())
 En cuanto a los cultivos más representativos a nivel nacional, su distribución geográfica varía considerablemente. A modo de ejemplo, el cultivo de `r cultivo_ejemplo` cuenta con `r valor_cultivo_ejemplo` evaluaciones agropecuarias en el departamento de `r dept_ejemplo`.
 
 
+### Matriz de Correlación entre Variables Numéricas
+
 ```{r}
 #| warning: false
 #| message: false
-
-# --- MATRIZ DE CORRELACIÓN ---
 
 corr_info <- datos %>% 
   select(produccion, area_sembrada, area_cosechada, rendimiento) %>% 
@@ -312,11 +421,11 @@ girafe(ggobj = last_plot())
 La matriz de correlación revela que existe una correlación positiva fuerte de `r corr_area_prod` entre el área sembrada y la producción, mientras que la relación entre producción y rendimiento es de `r corr_prod_rend`, lo cual indica una asociación directa entre estas variables del sector agropecuario.
 
 
+### Medidas resumen
+
 ```{r}
 #| warning: false
 #| message: false
-
-# --- MEDIDAS RESUMEN POR CULTIVO ---
 
 medidas_resumen <- datos %>%
   filter(cultivo %in% nombres_top3) %>%
@@ -348,9 +457,6 @@ El análisis de medidas resumen por cultivo muestra que `r cultivo_max_media` pr
 #| warning: false
 #| message: false
 
-# --- DISTRIBUCIÓN Y NORMALIDAD ---
-
-# Filtrar datos una sola vez para todos los gráficos
 prod_filtrada <- datos %>% filter(cultivo %in% nombres_top3[1], !is.na(produccion))
 
 # Histograma
@@ -391,12 +497,21 @@ prod_filtrada %>%
   theme_minimal()
 
 girafe(ggobj = last_plot())
+```
 
-# Prueba de Shapiro-Wilk (extraer variables en un solo paso)
+Los histogramas, gráficos de densidad y distribución empírica muestran la forma de la variable producción para el cultivo de `r nombres_top3[1]`.
+
+
+### Comprobación de normalidad - Prueba de Shapiro-Wilk
+
+```{r}
+#| warning: false
+#| message: false
+
 shapiro_test <- datos %>% 
   filter(cultivo == nombres_top3[1], !is.na(produccion)) %>% 
   pull(produccion) %>% 
-  head(5000) %>%
+  head(4000) %>% # la prueba no es apta para mas de 5000 registors
   { list(test = shapiro.test(.), data = .) }
 
 estadistico_shap <- round(shapiro_test$test$statistic, 4)
@@ -407,13 +522,14 @@ cultivo_ejemplo_dist <- nombres_top3[1]
 
 Los histogramas, gráficos de densidad y distribución empírica muestran la forma de la variable producción para el cultivo de `r cultivo_ejemplo_dist`. La prueba de Shapiro-Wilk obtiene un estadístico de `r estadistico_shap` con un valor-p de `r valor_p_shap`, lo que indica que los datos `r normalidad` (al nivel de significancia 0.05).
 
+### Cálculo de intervalo de confianza
 
 ```{r}
 #| warning: false
 #| message: false
 
-# --- INTERVALOS DE CONFIANZA ---
-
+# Intervalos de Confianza
+# Rúbrica: Cálculo de intervalo de confianza (al menos 2)
 tabla_ic <- nombres_top3[1:2] %>%
   map(~ datos %>% filter(cultivo == .x, !is.na(produccion)) %>% pull(produccion) %>% t.test(conf.level = 0.95)) %>%
   map_dfr(~ data.frame(
@@ -435,10 +551,12 @@ datatable(tabla_ic, options = list(pageLength = 5))
 
 El intervalo de confianza al 95% para la producción media del cultivo `r nombres_top3[1]` es (`r li_1`, `r ls_1`) toneladas. Para el cultivo `r nombres_top3[2]`, el intervalo es (`r li_2`, `r ls_2`) toneladas.
 
+
 ## Conclusiones
 
-El análisis de las evaluaciones agropecuarias municipales de Colombia entre 2019 y 2024 revela patrones importantes en la producción agrícola del país. El cultivo de café lidera la producción nacional, seguido por la caña de azúcar y el plátano. El departamento de Santander presenta la mayor cantidad de registros en el sistema de evaluaciones agropecuarias, mientras que los cereales constituyen el grupo de cultivo predominante en la base de datos.
+El análisis de las evaluaciones agropecuarias municipales de Colombia entre 2019 y 2024 revela patrones importantes en la producción agrícola del país. A nivel de producción, el cultivo que lidera el sector es `r nombres_top3[1]`, seguido por `r nombres_top3[2]` y `r nombres_top3[3]`. Geográficamente, el departamento de `r top_deptamento` presenta la mayor cantidad de registros en el sistema, mientras que la categoría de `r top_grupo` constituye el grupo de cultivo predominante en la base de datos.
 
-La matriz de correlación evidencia una fuerte relación positiva entre el área sembrada y la producción agrícola (r = 0.99), lo cual es consistente con la lógica productiva del sector. Sin embargo, la prueba de Shapiro-Wilk rechaza la hipótesis de normalidad para los datos de producción, indicando la presencia de distribuciones asimétricas que requieren análisis no paramétricos complementarios.
+La matriz de correlación evidencia una fuerte relación positiva entre el área sembrada y la producción agrícola (r = `r corr_area_prod`), lo cual es consistente con la lógica productiva del sector. Sin embargo, la prueba de Shapiro-Wilk rechaza la hipótesis de normalidad para los datos de producción de `r nombres_top3[1]` (valor-p: `r valor_p_shap`), indicando la presencia de distribuciones asimétricas.
 
-Los intervalos de confianza calculados permiten estimar con un 95% de confianza los rangos probables de producción media para los principales cultivos, proporcionando información valiosa para la toma de decisiones en el sector agropecuario colombiano.
+Finalmente, los intervalos de confianza permiten estimar que la producción media esperada del principal cultivo (`r nombres_top3[1]`) se encuentra entre `r li_1` y `r ls_1` toneladas, lo que proporciona información robusta frente a la alta variabilidad del sector agropecuario.
+
