@@ -3,6 +3,7 @@ title: "Gráficos Interactivos con GGIRAPH y PLOTLY"
 author: "Brian Ruiz"
 format: html
 embed-resources: true
+css: styles.css
 ---
 
 
@@ -17,6 +18,7 @@ library(scales)
 library(ggiraph)
 library(corrplot)
 library(ggcorrplot)
+library(flextable)
 ```
 
 
@@ -24,23 +26,63 @@ library(ggcorrplot)
 ```{r}
 #| warning: false
 rm(list = ls())
+# datos <- read.xlsx("https://docs.google.com/spreadsheets/d/e/2PACX-1vRs-u5yeAgR3kl765njqgXdyxh34gw2UrTcPRoV6LDu_O2fcxIZDiuS45r_1yQj4Q/pub?output=xlsx")
+# Usar archivo local
+datos <- read.xlsx("DATA/Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx") 
+```
 
-datos <- read.xlsx("DATA/Evaluaciones_Agropecuarias_Municipales_–_EVA._2019_-_2024._Base_Agrícola_20260327.xlsx") %>%
-  clean_names() %>%
-  select(-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo)
+```{r}
+# Eliminar duplicados
+
+# por todas las variables
+datos <- datos %>% distinct() %>% 
+  clean_names() %>% # normaliso nombres 
+  select(-codigo_dane_departamento, -codigo_dane_municipio, -codigo_del_cultivo) # quito variables feas
 ```
 
 
 ```{r}
-nombres_top3 <- datos %>% group_by(cultivo) %>%
+# Tabla de grupos de cultivo en filas
+# Años en columnas
+
+tabla_cultivo_aguacate_annio <- datos %>% 
+  filter(str_detect(tolower(cultivo), "aguacate")) %>% 
+  group_by(ano,desagregacion_cultivo) %>% 
+    summarise(produccion = sum(produccion)) %>% 
+    filter(produccion>0) %>% 
+    filter(ano>2019) %>% 
+  pivot_wider(
+    names_from = desagregacion_cultivo, # Los nombres de las columnas serán las variedades
+    values_from = produccion            # Los valores dentro de la tabla será la producción
+  ) 
+
+ tabla_cultivo_aguacate_annio %>%    flextable() %>% 
+      # titulo tabla
+      set_caption("Produccion de aguacate por variedad y año") %>% 
+      # asignar ancho a columna
+      autofit() %>% 
+      # Tema personalizado
+      flextable::theme_vanilla()
+```
+
+```{r}
+
+```
+
+
+
+
+```{r}
+nombres_top3 <- datos %>% group_by(cultivo) %>% # para grafico dinamico de la Tarea :)
   summarise(produccion_total = sum(produccion)) %>% 
-  arrange(desc(produccion_total)) %>% 
-  slice_head(n = 3) %>% # filtro los 3 cultivos de mayor producción
-  pull(cultivo) # Saco los nombres de los 3 cultivos que graficaré :)
+  arrange(desc(produccion_total)) %>% # Ordene la sumita
+  slice_head(n = 3) %>% # y la filtre 
+  pull(cultivo) # Pero solo necesito los nombres :)
 ```
 
 
 ```{r}
+# Grafico interactivo de la tarea
 grafico_prod <- datos %>% 
   filter(cultivo %in% nombres_top3) %>% 
   group_by(ano, cultivo) %>%

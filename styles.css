@@ -1,0 +1,19 @@
+body {
+  background-color: #f0f0f0;
+  color: #000000;
+}
+
+.container, .main, article, section {
+  background-color: #ffffff !important;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 8px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #1a1a1a;
+}
+
+a {
+  color: #2c5282;
+}
